@@ -10,43 +10,40 @@ export function match(ctx) {
 export async function run({ sock, from }) {
   return sock.sendMessage(from, {
     image: fs.readFileSync(PATHS.banner),
-    caption: `✨ Welcome to Lamp1on-Bot!
-Type *.rules* to read the usage rules.
+    caption: `Lamp1on-Bot
 
-┌─ 📄 *Information*
-├ .menu - Show the bot menu
-├ .info - Show bot information
-├ .rules - Show usage rules
-└ .statusbot - Show system status
+Type .rules for usage rules.
 
-┌─ ☁️ *Google Drive* (na)
-└ Not integrated yet.
+Information
+├ .menu — Show this menu
+├ .info — Show bot information
+├ .rules — Show usage rules
+└ .statusbot — Show bot status
 
-┌─ 🧰 *General Tools*
-├ .tts <text> - Convert text to speech
-├ .morse <text> - Encode text as Morse code
-├ .textmorse <code> - Decode Morse code
-├ .encode64 <text> - Encode Base64
-├ .decode64 <code> - Decode Base64
-├ .hitung <expression> - Calculator
-├ .shorturl <url> - Shorten a URL
-├ .scan <url> - Check URL safety
-└ .deviceinfo - Show bot device information
+Google Drive (na)
+└ Not integrated
 
-┌─ 🔍 *Search & Information*
-└ .anime <title> - Search anime information
+General tools
+├ .tts <text> — Convert text to speech
+├ .morse <text> — Encode text as Morse code
+├ .textmorse <code> — Decode Morse code
+├ .encode64 <text> — Encode Base64
+├ .decode64 <code> — Decode Base64
+├ .hitung <expression> — Calculate expression
+├ .shorturl <url> — Shorten URL
+├ .scan <url> — Check URL safety
+└ .deviceinfo — Show device information
 
-┌─ 🎮 *Mini Game*
-├ .tebakhewan - Start the animal guessing game
-└ .tebak <answer> - Submit an answer
+Search
+└ .anime <title> — Search anime
 
-┌─ 📥 *Downloader*
-└ .tiktok <url> [video|audio|photo] - Download TikTok media
+Games
+├ .tebakhewan — Start animal guessing game
+└ .tebak <answer> — Submit answer
 
-⚠️ *Important:*
-Do not upload illegal, pornographic, or violent content.
-Users are responsible for their use of this bot.
+Downloader
+└ .tiktok <url> [video|audio|photo] — Download media
 
-🔖 *Version:* ${BOT_VERSION} - Lamp1on-Bot by ${DEVELOPER}`,
+Version ${BOT_VERSION} · ${DEVELOPER}`,
   });
 }

@@ -9,8 +9,8 @@ export const PATHS = {
   downloads: "./data/downloads",
   logs: "./data/logs",
   auth: "./data/auth_info",
-  banner: "assets/banner.jpg",
-  deviceBanner: "assets/archlinux.jpg",
+  banner: "assets/v2.0.png",
+  deviceBanner: "assets/v2.0.png",
 };
 
 export const DRIVE = {

@@ -39,16 +39,14 @@ export async function run({ sock, from }) {
   const uptimeMs = os.uptime() * 1000;
 
   const deviceInfo = [
-    "🖥️ *Device Status*",
+    "Device status",
     "",
-    `📦 OS        : ${readOsName()} (${os.arch()})`,
-    `🧠 Kernel    : ${os.type()} ${os.release()}`,
-    `⚙️ CPU       : ${readCpuModel()}`,
-    `🔩 Cores     : ${os.cpus()?.length || "?"}`,
-    `🗂️ RAM       : ${formatBytes(usedMemory)} / ${formatBytes(totalMemory)}`,
-    `⏱️ Uptime    : ${prettyMs(uptimeMs, { verbose: true, secondsDecimalDigits: 0 })}`,
-    "",
-    "🐧 i use arch, btw",
+    `OS       — ${readOsName()} (${os.arch()})`,
+    `Kernel   — ${os.type()} ${os.release()}`,
+    `CPU      — ${readCpuModel()}`,
+    `Cores    — ${os.cpus()?.length || "?"}`,
+    `RAM      — ${formatBytes(usedMemory)} / ${formatBytes(totalMemory)}`,
+    `Uptime   — ${prettyMs(uptimeMs, { verbose: true, secondsDecimalDigits: 0 })}`,
   ].join("\n");
 
   await sock.sendMessage(from, {
