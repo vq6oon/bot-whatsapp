@@ -10,15 +10,16 @@ export function match(ctx) {
 export async function run({ sock, from }) {
   return sock.sendMessage(from, {
     image: fs.readFileSync(PATHS.banner),
-    caption:
-      `📦 *Bot Information:*\n` +
-      `├─ Name       : ${BOT_NAME}\n` +
-      `├─ Developer  : ${DEVELOPER}\n` +
-      `├─ Banner     : Anime Dandadan\n` +
-      `├─ Language   : JavaScript (Node.js)\n` +
-      `├─ Framework  : Baileys v6\n` +
-      `├─ Platform   : WhatsApp Multi-Device\n` +
-      `├─ GitHub     : ${GITHUB}\n` +
-      `└─ Version    : ${BOT_VERSION}`,
+    caption: [
+      "Bot information",
+      "",
+      `Name      — ${BOT_NAME}`,
+      `Developer — ${DEVELOPER}`,
+      "Language  — JavaScript",
+      "Framework — Baileys v6",
+      "Platform  — WhatsApp",
+      `GitHub    — ${GITHUB}`,
+      `Version   — ${BOT_VERSION}`,
+    ].join("\n"),
   });
 }
