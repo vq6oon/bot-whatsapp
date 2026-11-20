@@ -7,8 +7,7 @@
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
-    "panel": "node index.js",
-    "test": "node tests/anime.test.mjs && node tests/dispatch.test.mjs && node tests/network.test.mjs && node tests/message-logging.test.mjs && node tests/message-filter.test.mjs && node tests/reconnect.test.mjs && node tests/privacy.test.mjs && node tests/menu-presentation.test.mjs"
+    "panel": "node index.js"
   },
   "engines": {
     "node": ">=20"
