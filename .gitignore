@@ -1,0 +1,27 @@
+# Runtime (data sesi WhatsApp, unduhan, log)
+/data/
+
+# Kredensial: jangan pernah masuk repo
+/.env
+/credentials/
+credentials.json
+token.json
+auth_info/
+auth_info.bak.*
+
+# Dependensi
+/node_modules/
+
+# Sisa file lama
+*.bak
+*.bak.*
+*.log
+/uploads/
+/_uploads/
+/converted/
+/youtube-dump/
+
+# Editor
+.vscode/
+.idea/
+*.swp

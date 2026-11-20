@@ -1,0 +1,32 @@
+{
+  "name": "lamp1on-bot",
+  "version": "2.0.0",
+  "description": "WhatsApp bot for media downloads and text utilities; Google Drive (na)",
+  "type": "module",
+  "private": true,
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "panel": "node index.js",
+    "test": "node tests/anime.test.mjs && node tests/dispatch.test.mjs && node tests/network.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@mrnima/tiktok-downloader": "^1.0.0",
+    "@whiskeysockets/baileys": "^6.7.18",
+    "dotenv": "^17.0.1",
+    "express": "^5.1.0",
+    "googleapis": "^150.0.1",
+    "gtts": "^0.2.1",
+    "node-fetch": "^3.3.2",
+    "pino": "^8.21.0",
+    "pretty-ms": "^9.2.0",
+    "qrcode-terminal": "^0.12.0",
+    "sharp": "^0.32.6",
+    "youtube-dl-exec": "^3.0.22",
+    "ytdl-core": "^4.11.5"
+  }
+}
