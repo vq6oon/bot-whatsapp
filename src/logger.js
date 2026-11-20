@@ -7,6 +7,18 @@ export function logToFile(message) {
   fs.appendFileSync(`${PATHS.logs}/${today}.log`, message + "\n");
 }
 
+export function createMessageLogger({ console: writeConsole = console.log, file = logToFile } = {}) {
+  return {
+    incoming(message) {
+      writeConsole(message);
+      file(message);
+    },
+    outgoing(message) {
+      file(message);
+    },
+  };
+}
+
 export function logLine(message) {
   console.log(message);
   logToFile(message);

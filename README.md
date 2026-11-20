@@ -20,14 +20,6 @@ node bot.js
 
 On first launch, a QR code appears in the terminal. In WhatsApp, open Linked Devices and scan it.
 
-To use a pairing code:
-
-```bash
-WA_PAIR_NUMBER=6281xxxxxxxx node bot.js
-```
-
-Enter the printed code in WhatsApp under Link with phone number.
-
 ## Commands
 
 | Command | Description |

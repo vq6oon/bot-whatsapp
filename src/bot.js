@@ -4,8 +4,12 @@ import qrcode from "qrcode-terminal";
 import P from "pino";
 import fs from "fs";
 import { PATHS } from "./config.js";
-import { logLine, logToFile, timeNow } from "./logger.js";
+import { createMessageLogger, logToFile, timeNow } from "./logger.js";
 import { dispatch } from "./router.js";
+import { scheduleReconnect } from "./reconnect.js";
+import { shouldProcessMessage } from "./message-filter.js";
+
+const messageLogger = createMessageLogger();
 
 const {
   default: makeWASocket,
@@ -15,15 +19,15 @@ const {
 } = bailey;
 
 // Set WA_PAIR_NUMBER to the bot number to log in without a QR code.
-function maybeRequestPairingCode(sock) {
-  if (!process.env.WA_PAIR_NUMBER) return;
+function maybeRequestPairingCode(sock, registered) {
+  const phoneNumber = process.env.WA_PAIR_NUMBER;
+  if (registered || !phoneNumber) return;
 
   setTimeout(async () => {
     try {
-      const num = String(process.env.WA_PAIR_NUMBER).replace(/[^0-9]/g, "");
+      const num = String(phoneNumber).replace(/[^0-9]/g, "");
       const code = await sock.requestPairingCode(num);
-      console.log("Pairing code for +" + num + ": " + code);
-      logToFile(`[${new Date().toISOString()}] pairing ${num} => ${code}`);
+      console.log("Pairing code: " + code);
     } catch (e) {
       console.error("pairing code failed:", e?.message || e);
     }
@@ -38,7 +42,12 @@ function watchConnection(sock, restart) {
 
     if (connection === "close") {
       const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-      if (reason !== DisconnectReason.loggedOut) restart();
+      scheduleReconnect({
+        reason,
+        loggedOutReason: DisconnectReason.loggedOut,
+        restart,
+        logger: console,
+      });
       connectedOnce = false;
     }
 
@@ -66,16 +75,15 @@ function readMessage(msg) {
 }
 
 async function onMessage(sock, msg) {
-  if (!msg.message) return;
-  if (msg.key.remoteJid?.endsWith("@channel")) return;
+  if (!shouldProcessMessage(msg)) return;
 
   const time = timeNow();
   const { from, sender, text, quoted, quotedContext } = readMessage(msg);
 
-  logLine(`[${time}] ${sender} ➜ ${text}`);
+  messageLogger.incoming(`[${time}] ${sender} ➜ ${text}`);
 
   const sendText = async (body) => {
-    logLine(`[${time}] Bot ➜ ${body}`);
+    messageLogger.outgoing(`[${time}] Bot ➜ ${body}`);
     return sock.sendMessage(from, { text: body });
   };
 
@@ -106,7 +114,7 @@ export async function startBot() {
   });
 
   sock.ev.on("creds.update", saveCreds);
-  maybeRequestPairingCode(sock);
+  maybeRequestPairingCode(sock, state.creds.registered);
   watchConnection(sock, startBot);
 
   sock.ev.on("messages.upsert", async ({ messages }) => {

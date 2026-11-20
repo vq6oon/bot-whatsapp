@@ -9,10 +9,10 @@ function makeCtx(text, extra = {}) {
     sock,
     msg: {
       message: { conversation: text },
-      key: { remoteJid: "6281@s.whatsapp.net" },
+      key: { remoteJid: "15550000001@s.whatsapp.net" },
     },
-    from: "6281@s.whatsapp.net",
-    sender: "6281@s.whatsapp.net",
+    from: "15550000001@s.whatsapp.net",
+    sender: "15550000001@s.whatsapp.net",
     text,
     time: "00:00:00",
     sendText: async (body) => {

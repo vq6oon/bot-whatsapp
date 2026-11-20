@@ -8,14 +8,13 @@
   "scripts": {
     "start": "node bot.js",
     "panel": "node index.js",
-    "test": "node tests/anime.test.mjs && node tests/dispatch.test.mjs && node tests/network.test.mjs"
+    "test": "node tests/anime.test.mjs && node tests/dispatch.test.mjs && node tests/network.test.mjs && node tests/message-logging.test.mjs && node tests/message-filter.test.mjs && node tests/reconnect.test.mjs && node tests/privacy.test.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
-    "@mrnima/tiktok-downloader": "^1.0.0",
     "@whiskeysockets/baileys": "^6.7.18",
     "dotenv": "^17.0.1",
     "express": "^5.1.0",
