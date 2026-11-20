@@ -8,17 +8,22 @@ WhatsApp bot for media downloads and lightweight text utilities. Built with Bail
 - `ffmpeg` available on `PATH`
 - Google Drive: (na) — not integrated yet
 
-## Setup
-
 ```bash
-npm install
-cp .env.example .env  # Optional; set WA_PAIR_NUMBER for pairing-code login
-node bot.js
+git clone git@github.com:vq6oon/bot-whatsapp.git
+cd bot-whatsapp
+npm ci
+npm start
 ```
 
-`DRIVE_FOLDER_ID` is optional. Set it in `.env` only if using the Drive helpers.
+Requires Node.js 20 or newer and SSH access to the private repository. On first start, scan the QR code shown in the terminal using WhatsApp → Linked Devices → Link a device. Keep `data/auth_info/`; it stores the linked session so later starts do not need another scan. This directory is ignored by Git.
 
-On first launch, a QR code appears in the terminal. In WhatsApp, open Linked Devices and scan it.
+Create `.env` only if needed:
+
+```dotenv
+DRIVE_FOLDER_ID=your_google_drive_folder_id
+```
+
+`DRIVE_FOLDER_ID` is optional. Google Drive commands are not integrated yet. Pairing-code login is not documented or supported; use the QR code.
 
 ## Commands
 
