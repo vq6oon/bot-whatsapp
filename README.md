@@ -35,7 +35,7 @@ DRIVE_FOLDER_ID=your_google_drive_folder_id
 | `.checkdrive`, `.list`, `.upload` | Google Drive: (na), not integrated yet |
 | `.tts <text>` | Convert text to a voice note |
 | `.scan <url>` | Check URL reputation |
-| `.tiktok <url> [video\|audio\|photo]` | Download TikTok video, audio, or photo |
+| `.tiktok <url> [video|hd|audio|photo]` | Download TikTok video (standard or HD), audio, or photo |
 | `.hitung <expression>` | Calculator |
 | `.anime <title>` | Search anime information from Jikan |
 | `.shorturl <url>` | Shorten a URL |

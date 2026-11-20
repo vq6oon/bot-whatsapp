@@ -42,7 +42,7 @@ Games
 └ .tebak <answer> — Submit answer
 
 Downloader
-└ .tiktok <url> [video|audio|photo] — Download media
+└ .tiktok <url> [video|hd|audio|photo] — Download media
 
 Version ${BOT_VERSION} · ${DEVELOPER}`,
   });
