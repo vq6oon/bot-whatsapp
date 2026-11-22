@@ -32,7 +32,6 @@ DRIVE_FOLDER_ID=your_google_drive_folder_id
 | `.menu` | Show available commands |
 | `.info` | Show bot information and version |
 | `.rules` | Show usage rules |
-| `.getcontact`, `.gc` | Send your WhatsApp contact card |
 | `.checkdrive`, `.list`, `.upload` | Google Drive: (na), not integrated yet |
 | `.tts <text>` | Convert text to a voice note |
 | `.scan <url>` | Check URL reputation |
