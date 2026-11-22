@@ -16,6 +16,7 @@ import * as binary from "../handler/binary.js";
 import * as upload from "../handler/upload.js";
 import * as list from "../handler/list.js";
 import * as sticker from "../handler/sticker.js";
+import * as getcontact from "../handler/getcontact.js";
 
 // Handler order determines command matching priority.
 const HANDLERS = [
@@ -37,6 +38,7 @@ const HANDLERS = [
   upload,
   list,
   sticker,
+  getcontact,
 ];
 
 // Run the first matching handler. Each message triggers one command.

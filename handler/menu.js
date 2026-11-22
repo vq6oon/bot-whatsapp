@@ -18,6 +18,7 @@ Information
 ├ .menu — Show this menu
 ├ .info — Show bot information
 ├ .rules — Show usage rules
+├ .getcontact / .gc — Send your own contact card
 └ .statusbot — Show bot status
 
 Google Drive (na)
