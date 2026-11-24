@@ -11,7 +11,7 @@ const VIDEO_EXTENSIONS = new Set([".mp4", ".mkv", ".webm", ".m4v"]);
 
 export const ANIME_QUALITIES = new Set(["best", "worst", "360", "480", "720", "1080"]);
 export const ANIME_QUALITY_PATTERN = /^(best|worst|360|480|720|1080)$/;
-export const ANIDL_FORMAT_HINT = ".anidl <title> [--ep <n>] [--quality <q>]  # q=best|worst|360|480|720|1080, bisa ditulis --360";
+export const ANIDL_FORMAT_HINT = ".anidl <title> [--ep <n>] [--quality <q>]  # q=best|worst|360|480|720|1080, also accepts --360";
 
 const ANIDL_DIR = path.join(PATHS.downloads, "anidl");
 const ANI_CLI_BIN = process.env.ANI_CLI_BIN || "ani-cli";
@@ -50,9 +50,9 @@ export class AnimeQualityUnavailableError extends Error {
   constructor(title, episode, requested, available) {
     const formats = available.map((quality) => `${quality}p`).join(", ");
     super(
-      `❌ Format ${requested} tidak tersedia untuk ${title} episode ${episode}.\n` +
-      `Format tersedia: ${formats}\n` +
-      `Coba: .anidl ${title} --quality ${available[0]}`,
+      `❌ Quality ${requested} is not available for ${title} episode ${episode}.\n` +
+      `Available qualities: ${formats}\n` +
+      `Try: .anidl ${title} --quality ${available[0]}`,
     );
     this.name = "AnimeQualityUnavailableError";
     this.title = title;
@@ -173,12 +173,12 @@ export function animeDownloadError(error) {
   }
   const message = String(error?.message || error);
   if (error?.code === "ENOENT" || /not found/i.test(message)) {
-    return "❌ ani-cli belum terpasang di server.";
+    return "❌ ani-cli is not installed on the server.";
   }
   if (error?.killed || /timed out|timeout/i.test(message)) {
-    return "❌ Unduhan anime timeout. Coba lagi nanti.";
+    return "❌ Anime download timed out. Try again later.";
   }
-  return "❌ Gagal mengunduh anime dari ani-cli. Coba judul atau episode lain.";
+  return "❌ Failed to download the anime with ani-cli. Try another title or episode.";
 }
 
 export async function removeAnimeDownload(filePath) {

@@ -109,9 +109,9 @@ test(".anidl sends a download status before the Drive link", async () => {
     drive,
   );
 
-  assert.match(events[0], /^text:⏳ Sedang mengunduh naruto episode 2/);
+  assert.match(events[0], /^text:⏳ Downloading naruto episode 2/);
   assert.equal(events[1], "download");
-  assert.match(output.messages.at(-1).text, /tersimpan di Google Drive/);
+  assert.match(output.messages.at(-1).text, /saved to Google Drive/);
 });
 
 test(".anidl reports a missing ani-cli install without calling Drive", async () => {
@@ -126,7 +126,7 @@ test(".anidl reports a missing ani-cli install without calling Drive", async () 
   );
 
   assert.equal(uploaded.length, 0);
-  assert.match(output.messages[1].text, /ani-cli belum terpasang/);
+  assert.match(output.messages[1].text, /ani-cli is not installed/);
 });
 
 test(".anidl refuses to download when no Drive folder is configured", async () => {
@@ -144,7 +144,7 @@ test(".anidl refuses to download when no Drive folder is configured", async () =
   }
 
   assert.equal(downloads, 0);
-  assert.match(output.messages[0].text, /belum dikonfigurasi/);
+  assert.match(output.messages[0].text, /not configured/);
 });
 
 test(".anidl reports Drive upload failures", async () => {
@@ -162,7 +162,7 @@ test(".anidl reports Drive upload failures", async () => {
     drive,
   );
 
-  assert.match(output.messages[1].text, /Gagal menyimpan episode/);
+  assert.match(output.messages[1].text, /Failed to save the episode/);
   assert.deepEqual(removed, [episode.filePath]);
 });
 
@@ -209,9 +209,9 @@ test("downloadAnimeEpisode fails when ani-cli produces no fresh video", async ()
 });
 
 test("animeDownloadError translates timeout and missing binary", () => {
-  assert.match(animeDownloadError({ code: "ENOENT" }), /belum terpasang/);
-  assert.match(animeDownloadError({ killed: true }), /timeout/);
-  assert.match(animeDownloadError(new Error("boom")), /Gagal mengunduh anime/);
+  assert.match(animeDownloadError({ code: "ENOENT" }), /is not installed/);
+  assert.match(animeDownloadError({ killed: true }), /timed out/);
+  assert.match(animeDownloadError(new Error("boom")), /Failed to download the anime/);
 });
 
 test(".getani replaces .anime and both new commands are advertised in the menu", async () => {
@@ -286,8 +286,8 @@ test("downloadAnimeEpisode fails with the quality list when the requested format
     }),
     (error) => {
       assert.ok(error instanceof AnimeQualityUnavailableError);
-      assert.match(error.message, /720 tidak tersedia/);
-      assert.match(error.message, /Format tersedia: 1080p/);
+      assert.match(error.message, /720 is not available/);
+      assert.match(error.message, /Available qualities: 1080p/);
       assert.match(error.message, /\.anidl one piece --quality 1080/);
       return true;
     },
@@ -328,14 +328,14 @@ test("anidl.run surfaces the format list without downloading", async () => {
     async () => {},
     drive,
   );
-  assert.match(output.messages[1].text, /Format tersedia: 1080p/);
+  assert.match(output.messages[1].text, /Available qualities: 1080p/);
   assert.match(output.messages[1].text, /\.anidl one piece --quality 1080/);
 });
 
 test("animeDownloadError unwraps the quality-unavailable message", () => {
   const error = new AnimeQualityUnavailableError("naruto", 2, "480", ["1080"]);
-  assert.match(animeDownloadError(error), /480 tidak tersedia/);
-  assert.match(animeDownloadError(error), /Format tersedia: 1080p/);
+  assert.match(animeDownloadError(error), /480 is not available/);
+  assert.match(animeDownloadError(error), /Available qualities: 1080p/);
 });
 
 test("downloadAnimeEpisode isolates each invocation in a fresh directory", async () => {

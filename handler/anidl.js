@@ -60,9 +60,9 @@ export async function run(
   const parsed = parseArguments(text);
   if (parsed.error) return sendText(parsed.error);
   if (!drive && !DRIVE.folderId) {
-    return sendText("❌ Folder Google Drive belum dikonfigurasi.");
+    return sendText("❌ Google Drive folder is not configured. Set DRIVE_FOLDER_ID in .env.");
   }
-  await sendText(`⏳ Sedang mengunduh ${parsed.title} episode ${parsed.episode}...`);
+  await sendText(`⏳ Downloading ${parsed.title} episode ${parsed.episode}...`);
 
   let media;
   try {
@@ -76,7 +76,7 @@ export async function run(
       return sendText(animeDownloadError(error));
     }
     if (!media?.filePath || !media.size) {
-      return sendText("❌ Episode tidak bisa diunduh dari ani-cli.");
+      return sendText("❌ Could not download the episode with ani-cli.");
     }
 
     try {
@@ -86,11 +86,11 @@ export async function run(
       const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
       const quality = parsed.quality === "best" ? "best" : `${parsed.quality}p`;
       return await sendText(
-        `✅ ${media.title} (ep ${parsed.episode}, ${quality}) tersimpan di Google Drive\n🔗 ${link}`,
+        `✅ ${media.title} (ep ${parsed.episode}, ${quality}) saved to Google Drive\n🔗 ${link}`,
       );
     } catch (error) {
       console.error("anidl Drive upload:", error?.message || error);
-      return sendText("❌ Gagal menyimpan episode ke Google Drive.");
+      return sendText("❌ Failed to save the episode to Google Drive.");
     }
   } finally {
     if (media?.filePath) await removeFile(media.filePath).catch(() => {});
