@@ -110,7 +110,7 @@ A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`
 
 `.ytm` takes only a URL and always produces an MP3: `downloadYoutube(url, "mp3", "best")`, then `sock.sendMessage` with `audio`, `mimetype: audio/mpeg`, `fileName`, and `ptt: false`. The audio message comes back to the chat, not Drive, so no folder is needed.
 
-Both handlers delete the temporary download in a `finally` block, and both turn yt-dlp exit code 1 into "YouTube menolak unduhan atau format tidak tersedia" instead of leaking stderr.
+Both handlers delete the temporary download in a `finally` block, and both turn yt-dlp exit code 1 into "YouTube rejected the download or the format is unavailable" instead of leaking stderr.
 
 ## Anime commands
 
@@ -121,12 +121,12 @@ Both handlers delete the temporary download in a `finally` block, and both turn 
 Before downloading, the bot probes ani-cli in `debug` player mode to read the offered streams (the `All links:` block). If the requested quality is not among them it fails fast with the list, e.g. requesting `--720` on a series that only offers 1080p replies:
 
 ```
-❌ Format 720 tidak tersedia untuk one piece episode 1.
-Format tersedia: 1080p
-Coba: .anidl one piece --quality 1080
+❌ Quality 720 is not available for one piece episode 1.
+Available qualities: 1080p
+Try: .anidl one piece --quality 1080
 ```
 
-The downloader sets `ANI_CLI_PLAYER=/bin/true` (ani-cli checks for a player even in download mode), `ANI_CLI_MENU=/usr/local/bin/ani-pick-first` (picks the first row instead of opening fzf), and `ANI_CLI_DOWNLOAD_DIR=data/downloads/anidl/<timestamp>-<uuid>`. Each run gets its own directory, so leftover files cannot make yt-dlp skip the download. The bot uploads the freshest `.mp4`, `.mkv`, `.webm`, or `.m4v` to `DRIVE_FOLDER_ID`, replies with the Drive link, then deletes the directory. A missing binary becomes "ani-cli belum terpasang di server", and a killed/timeout run becomes "Unduhan anime timeout".
+The downloader sets `ANI_CLI_PLAYER=/bin/true` (ani-cli checks for a player even in download mode), `ANI_CLI_MENU=/usr/local/bin/ani-pick-first` (picks the first row instead of opening fzf), and `ANI_CLI_DOWNLOAD_DIR=data/downloads/anidl/<timestamp>-<uuid>`. Each run gets its own directory, so leftover files cannot make yt-dlp skip the download. The bot uploads the freshest `.mp4`, `.mkv`, `.webm`, or `.m4v` to `DRIVE_FOLDER_ID`, replies with the Drive link, then deletes the directory. A missing binary becomes "ani-cli is not installed on the server", and a killed/timeout run becomes "Anime download timed out".
 
 Install the host-side pieces once:
 
