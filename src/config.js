@@ -15,7 +15,7 @@ export const PATHS = {
 
 export const DRIVE = {
   folderId: process.env.DRIVE_FOLDER_ID || "",
-  scopes: ["https://www.googleapis.com/auth/drive.file"],
+  scopes: ["https://www.googleapis.com/auth/drive"],
   tokenPath: "credentials/token.json",
   credentialsPath: "credentials/credentials.json",
 };

@@ -5,6 +5,7 @@ import * as checkdrive from "../handler/checkdrive.js";
 import * as tts from "../handler/tts.js";
 import * as scan from "../handler/scan.js";
 import * as tiktok from "../handler/tiktok.js";
+import * as ytdl from "../handler/ytdl.js";
 import * as hitung from "../handler/hitung.js";
 import * as anime from "../handler/anime.js";
 import * as shorturl from "../handler/shorturl.js";
@@ -26,6 +27,7 @@ const HANDLERS = [
   tts,
   scan,
   tiktok,
+  ytdl,
   hitung,
   anime,
   shorturl,
