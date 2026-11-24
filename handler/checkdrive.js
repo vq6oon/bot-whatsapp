@@ -1,5 +1,5 @@
 import * as driveService from "../src/services/drive.js";
-import { DRIVE } from "../src/config.js";
+import { BOT_NAME, DRIVE } from "../src/config.js";
 
 export const name = "checkdrive";
 
@@ -20,7 +20,7 @@ export async function run({ sendText }, drive = driveService) {
     ]);
     const link = folder.webViewLink || `https://drive.google.com/drive/folders/${folder.id}`;
     return sendText(
-      `Lamp1on-Bot · Google Drive\n\nStatus: connected\nFolder: *${folder.name}*\nFiles: ${files.length}\n→ ${link}`,
+      `${BOT_NAME} · Google Drive\n\nStatus: connected\nFolder: *${folder.name}*\nFiles: ${files.length}\n→ ${link}`,
     );
   } catch (error) {
     console.error("checkdrive:", error?.message || error);

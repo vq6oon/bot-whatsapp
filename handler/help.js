@@ -1,3 +1,5 @@
+import { BOT_NAME } from "../src/config.js";
+
 export const name = "help";
 
 // One entry per command: format line + one-line behavior note.
@@ -70,7 +72,7 @@ export function allHelp() {
   const rows = Object.entries(HELP).map(
     ([key, entry]) => `\`${entry.format}\` — ${entry.about}`,
   );
-  return `Lamp1on-Bot commands\n\n${rows.join("\n")}\n\nType \`.help <command>\` for details.`;
+  return `${BOT_NAME} commands\n\n${rows.join("\n")}\n\nType \`.help <command>\` for details.`;
 }
 
 export async function run({ text, sendText }) {

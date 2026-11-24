@@ -24,7 +24,7 @@ test("checkdrive reports configured folder and file count", async () => {
     authorize: async () => "auth",
     getDriveFolderInfo: async (auth) => {
       assert.equal(auth, "auth");
-      return { id: "folder-123", name: "Lamp1on-Bot" };
+      return { id: "folder-123", name: "Kamui-Bot" };
     },
     listDriveFiles: async () => [{ id: "one" }, { id: "two" }],
     getDriveQuota: async () => ({ used: "3.00", total: "15.00", free: "12.00" }),
@@ -32,7 +32,7 @@ test("checkdrive reports configured folder and file count", async () => {
 
   await checkdrive.run(output, drive);
 
-  assert.match(output.messages[0], /Lamp1on-Bot/);
+  assert.match(output.messages[0], /Kamui-Bot/);
   assert.match(output.messages[0], /2/);
 });
 

@@ -1,5 +1,5 @@
 import fs from "fs";
-import { BOT_VERSION, DEVELOPER, PATHS } from "../src/config.js";
+import { BOT_NAME, BOT_VERSION, DEVELOPER, PATHS } from "../src/config.js";
 
 export const name = "menu";
 
@@ -9,7 +9,7 @@ export function match(ctx) {
 
 export async function run({ sock, from }) {
   const caption = [
-    `Lamp1on-Bot · ${BOT_VERSION}`,
+    `${BOT_NAME} · ${BOT_VERSION}`,
     "",
     "Info",
     ".help [command] · help for one command",

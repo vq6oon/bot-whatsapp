@@ -1,5 +1,5 @@
-export const BOT_NAME = "Lamp1on-Bot";
-export const BOT_VERSION = "v2.0.0";
+export const BOT_NAME = "Kamui-Bot";
+export const BOT_VERSION = "v3.0.0";
 export const DEVELOPER = "@vq6oon";
 export const GITHUB = "github.com/vq6oon";
 
@@ -9,8 +9,8 @@ export const PATHS = {
   downloads: "./data/downloads",
   logs: "./data/logs",
   auth: "./data/auth_info",
-  banner: "assets/v2.0.png",
-  deviceBanner: "assets/v2.0.png",
+  banner: "assets/kamui-bot.png",
+  deviceBanner: "assets/kamui-bot.png",
 };
 
 export const DRIVE = {

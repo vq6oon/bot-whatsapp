@@ -1,6 +1,6 @@
-# Lamp1on-Bot
+# Kamui-Bot
 
-WhatsApp bot built on Baileys v6 and Node.js. It downloads media (YouTube, TikTok, anime via ani-cli), stores large files in Google Drive, and bundles small text utilities. Version 2.0.0, ESM (`"type": "module"`).
+WhatsApp bot built on Baileys v6 and Node.js. It downloads media (YouTube, TikTok, anime via ani-cli), stores large files in Google Drive, and bundles small text utilities. Version 3.0.0, ESM (`"type": "module"`).
 
 ## Requirements
 
