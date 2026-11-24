@@ -11,7 +11,7 @@ export async function run({ sock, from }) {
   return sock.sendMessage(from, {
     image: fs.readFileSync(PATHS.banner),
     caption:
-      `📜 *Bot Usage Rules:*\n\n` +
+      `*Bot Usage Rules:*\n\n` +
       `1. Do not spam commands.\n` +
       `2. Do not upload:\n` +
       `   - Pornographic content\n` +

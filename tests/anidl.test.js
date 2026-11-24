@@ -109,7 +109,7 @@ test(".anidl sends a download status before the Drive link", async () => {
     drive,
   );
 
-  assert.match(events[0], /^text:⏳ Downloading naruto episode 2/);
+  assert.match(events[0], /^text:Downloading naruto episode 2/);
   assert.equal(events[1], "download");
   assert.match(output.messages.at(-1).text, /saved to Google Drive/);
 });

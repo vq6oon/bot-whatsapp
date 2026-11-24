@@ -61,9 +61,9 @@ export function helpText(command) {
     (k) => normalized.startsWith(k),
   );
   const entry = HELP[owner];
-  if (!entry) return `❌ No help for \`${command}\`. Try \`.help\`.`;
-  if (entry.detail) return `📖 *${entry.format}*\n\n${entry.detail}`;
-  return `📖 *${entry.format}*\n\n${entry.about}`;
+  if (!entry) return `✗ No help for \`${command}\`. Try \`.help\`.`;
+  if (entry.detail) return `*${entry.format}*\n\n${entry.detail}`;
+  return `*${entry.format}*\n\n${entry.about}`;
 }
 
 export function allHelp() {

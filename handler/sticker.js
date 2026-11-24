@@ -16,7 +16,7 @@ export async function run({ sock, msg, from, quoted, quotedContext, sendText }) 
     buffer = await downloadOwnBuffer(msg);
   }
 
-  if (!buffer) return sendText("❌ Send or reply to an image.");
+  if (!buffer) return sendText("✗ Send or reply to an image.");
 
   const webp = await sharp(buffer).resize(512, 512).webp().toBuffer();
   await sock.sendMessage(from, { sticker: webp });

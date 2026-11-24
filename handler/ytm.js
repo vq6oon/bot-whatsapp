@@ -32,7 +32,7 @@ export async function run(
       return sendText(youtubeDownloadError(error));
     }
     if (!media?.buffer?.length) {
-      return sendText("❌ Could not download the audio from YouTube.");
+      return sendText("✗ Could not download the audio from YouTube.");
     }
 
     try {
@@ -44,7 +44,7 @@ export async function run(
       });
     } catch (error) {
       console.error("ytm send:", error?.message || error);
-      return sendText("❌ Failed to send the audio to WhatsApp.");
+      return sendText("✗ Failed to send the audio to WhatsApp.");
     }
   } finally {
     if (media?.filePath) await removeFile(media.filePath).catch(() => {});

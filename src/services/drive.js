@@ -109,23 +109,14 @@ export function filterDriveFiles(files, type) {
   });
 }
 
-function iconFor(fileName) {
-  const ext = fileName.split(".").pop().toLowerCase();
-  if (AUDIO_EXT.includes(ext)) return "🎵";
-  if (VIDEO_EXT.includes(ext)) return "🎬";
-  if (DOC_EXT.includes(ext)) return "📑";
-  if (IMAGE_EXT.includes(ext)) return "🖼️";
-  return "📄";
-}
-
 export function formatDriveList(files, type = null) {
   const filteredFiles = filterDriveFiles(files, type);
-  if (filteredFiles.length === 0) return "📭 No files found.";
+  if (filteredFiles.length === 0) return "No files found.";
 
   return filteredFiles
     .map((file) => {
       const link = file.webViewLink || `https://drive.google.com/file/d/${file.id}/view`;
-      return `${iconFor(file.name)} *${file.name}*\n🔗 ${link}`;
+      return `*${file.name}*\n→ ${link}`;
     })
     .join("\n\n");
 }

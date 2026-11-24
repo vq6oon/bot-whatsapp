@@ -50,7 +50,7 @@ export class AnimeQualityUnavailableError extends Error {
   constructor(title, episode, requested, available) {
     const formats = available.map((quality) => `${quality}p`).join(", ");
     super(
-      `❌ Quality ${requested} is not available for ${title} episode ${episode}.\n` +
+      `✗ Quality ${requested} is not available for ${title} episode ${episode}.\n` +
       `Available qualities: ${formats}\n` +
       `Try: .anidl ${title} --quality ${available[0]}`,
     );
@@ -173,12 +173,12 @@ export function animeDownloadError(error) {
   }
   const message = String(error?.message || error);
   if (error?.code === "ENOENT" || /not found/i.test(message)) {
-    return "❌ ani-cli is not installed on the server.";
+    return "✗ ani-cli is not installed on the server.";
   }
   if (error?.killed || /timed out|timeout/i.test(message)) {
-    return "❌ Anime download timed out. Try again later.";
+    return "✗ Anime download timed out. Try again later.";
   }
-  return "❌ Failed to download the anime with ani-cli. Try another title or episode.";
+  return "✗ Failed to download the anime with ani-cli. Try another title or episode.";
 }
 
 export async function removeAnimeDownload(filePath) {

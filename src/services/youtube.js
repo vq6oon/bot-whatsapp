@@ -22,9 +22,9 @@ export function isYoutubeUrl(value) {
 
 export function youtubeDownloadError(error) {
   if (error?.code === 1) {
-    return "❌ YouTube rejected the download or the format is unavailable. Try another public video link.";
+    return "✗ YouTube rejected the download or the format is unavailable. Try another public video link.";
   }
-  return "❌ Failed to download media from YouTube. Try again later.";
+  return "✗ Failed to download media from YouTube. Try again later.";
 }
 
 export function parseYoutubeMetadata(output) {

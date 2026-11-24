@@ -20,7 +20,7 @@ function makeHint(answer) {
 }
 
 function startGame(sendText) {
-  if (state.active) return sendText("❗ A guessing game is already active.");
+  if (state.active) return sendText("· A guessing game is already active.");
 
   const answer = getRandomAnimal();
   state.answer = answer;
@@ -28,29 +28,29 @@ function startGame(sendText) {
   state.active = true;
 
   sendText(
-    `🧠 *Guess the Animal!*\n${state.hint}\n\n` +
-      `⏳ Time limit: 60 seconds\n` +
+    `*Guess the Animal!*\n${state.hint}\n\n` +
+      `Time limit: 60 seconds\n` +
       `Type .tebak followed by your guess`,
   );
 
   state.timer = setTimeout(() => {
     if (state.active) {
-      sendText(`⌛ Time is up! The answer was: *${state.answer}*`);
+      sendText(`Time is up! The answer was: *${state.answer}*`);
       state.active = false;
     }
   }, GAME_TIMEOUT_MS);
 }
 
 function submitAnswer(text, sendText) {
-  if (!state.active) return sendText("❗ No guessing game is active.");
+  if (!state.active) return sendText("· No guessing game is active.");
 
   const guess = text.split(".tebak ")[1].toLowerCase();
   if (guess === state.answer.toLowerCase()) {
     clearTimeout(state.timer);
     state.active = false;
-    sendText("✅ *Correct!* The answer is " + state.answer);
+    sendText("✓ *Correct!* The answer is " + state.answer);
   } else {
-    sendText("❌ Incorrect! Try again.");
+    sendText("✗ Incorrect! Try again.");
   }
 }
 

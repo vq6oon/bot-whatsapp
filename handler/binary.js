@@ -16,14 +16,14 @@ const toBinary = (text) =>
 export async function run({ text, sendText }) {
   if (text.startsWith(".biner ")) {
     const input = text.slice(7).trim();
-    if (!input) return sendText("❗ Enter text after .biner");
+    if (!input) return sendText("· Enter text after .biner");
 
     const perCharacter = [...input].map(
       (character) => `${character} → ${character.charCodeAt(0).toString(2).padStart(8, "0")}`,
     );
 
     return sendText(
-      `🧠 *Text to Binary:*\n${perCharacter.join("\n")}\n\n📦 Output:\n${toBinary(input)}`,
+      `*Text to Binary:*\n${perCharacter.join("\n")}\n\nOutput:\n${toBinary(input)}`,
     );
   }
 
@@ -40,6 +40,6 @@ export async function run({ text, sendText }) {
       .join("");
     return sendText(`┌─ binary : ${input}\n└─ text   : ${decodedText}`);
   } catch {
-    return sendText("❌ Invalid binary format.");
+    return sendText("✗ Invalid binary format.");
   }
 }

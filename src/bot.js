@@ -80,10 +80,10 @@ async function onMessage(sock, msg) {
   const time = timeNow();
   const { from, sender, text, quoted, quotedContext } = readMessage(msg);
 
-  messageLogger.incoming(`[${time}] ${sender} ➜ ${text}`);
+  messageLogger.incoming(`[${time}] ${sender} → ${text}`);
 
   const sendText = async (body) => {
-    messageLogger.outgoing(`[${time}] Bot ➜ ${body}`);
+    messageLogger.outgoing(`[${time}] Bot → ${body}`);
     return sock.sendMessage(from, { text: body });
   };
 

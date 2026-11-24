@@ -25,7 +25,7 @@ export async function run(
   mediaService = { downloadOwnBuffer, downloadQuotedBuffer },
 ) {
   if (!DRIVE.folderId) {
-    return sendText("⚠️ Set DRIVE_FOLDER_ID in .env to your Google Drive folder ID.");
+    return sendText("! Set DRIVE_FOLDER_ID in .env to your Google Drive folder ID.");
   }
 
   const hasCaption = text.trim().length > ".upload".length;
@@ -44,22 +44,22 @@ export async function run(
     const buffer = quotedMedia
       ? await mediaService.downloadQuotedBuffer(quoted, quotedContext)
       : await mediaService.downloadOwnBuffer(msg);
-    if (!buffer?.length) return sendText("❌ Media is empty or could not be downloaded.");
+    if (!buffer?.length) return sendText("✗ Media is empty or could not be downloaded.");
 
     const mimeType = media.mimetype || "application/octet-stream";
     const fileName = customName || inferFileName(media, mimeType, Date.now());
     const auth = await drive.authorize();
     const uploaded = await drive.uploadToDrive(auth, buffer, fileName, mimeType);
     const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
-    return sendText(`✅ File saved to Google Drive\n\n*${uploaded.name || fileName}*\n🔗 ${link}`);
+    return sendText(`✓ File saved to Google Drive\n\n*${uploaded.name || fileName}*\n→ ${link}`);
   } catch (error) {
     console.error("upload:", error?.message || error);
     if (error?.code === 401 || error?.response?.status === 401) {
-      return sendText("❌ Google Drive token rejected. Re-run node get_token.js and update credentials/token.json.");
+      return sendText("✗ Google Drive token rejected. Re-run node get_token.js and update credentials/token.json.");
     }
     if (error?.code === 403 || error?.response?.status === 403) {
-      return sendText("❌ Google denied Drive access. Make sure the Drive API is enabled and the drive.file scope is allowed.");
+      return sendText("✗ Google denied Drive access. Make sure the Drive API is enabled and the drive.file scope is allowed.");
     }
-    return sendText("❌ Failed to upload the file to Google Drive. Check the connection, OAuth token, and folder ID.");
+    return sendText("✗ Failed to upload the file to Google Drive. Check the connection, OAuth token, and folder ID.");
   }
 }
