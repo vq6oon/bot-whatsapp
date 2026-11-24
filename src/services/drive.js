@@ -120,7 +120,7 @@ function iconFor(fileName) {
 
 export function formatDriveList(files, type = null) {
   const filteredFiles = filterDriveFiles(files, type);
-  if (filteredFiles.length === 0) return "📭 Tidak ada file ditemukan.";
+  if (filteredFiles.length === 0) return "📭 No files found.";
 
   return filteredFiles
     .map((file) => {

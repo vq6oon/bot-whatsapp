@@ -9,7 +9,7 @@ export function match(ctx) {
 
 export async function run({ text, sendText }, drive = driveService) {
   if (!DRIVE.folderId) {
-    return sendText("⚠️ Isi DRIVE_FOLDER_ID di .env dengan ID folder Drive.");
+    return sendText("⚠️ Set DRIVE_FOLDER_ID in .env to your Google Drive folder ID.");
   }
 
   const type = text.trim().split(/\s+/)[1]?.toLowerCase() || null;
@@ -21,18 +21,18 @@ export async function run({ text, sendText }, drive = driveService) {
   try {
     const auth = await drive.authorize();
     const files = await drive.listDriveFiles(auth);
-    return sendText(`Google Drive · ${files.length} file\n\n${drive.formatDriveList(files, type)}`);
+    return sendText(`Google Drive · ${files.length} file${files.length === 1 ? "" : "s"}\n\n${drive.formatDriveList(files, type)}`);
   } catch (error) {
     console.error("list:", error?.message || error);
     if (error?.code === 401 || error?.response?.status === 401) {
-      return sendText("❌ Token Google Drive ditolak. Jalankan ulang node get_token.js dan perbarui credentials/token.json.");
+      return sendText("❌ Google Drive token rejected. Re-run node get_token.js and update credentials/token.json.");
     }
     if (error?.code === 403 || error?.response?.status === 403) {
-      return sendText("❌ Google menolak akses folder. Scope drive.file hanya mencakup file yang dibuat atau dibuka aplikasi; folder lama perlu izin Drive penuh dan OAuth ulang.");
+      return sendText("❌ Google denied folder access. The drive.file scope only covers files created or opened by the app; older folders need full Drive access and a new OAuth token.");
     }
     if (error?.code === 404 || error?.response?.status === 404) {
-      return sendText("❌ Folder tidak ditemukan atau tidak terlihat oleh aplikasi. Periksa DRIVE_FOLDER_ID dan scope OAuth.");
+      return sendText("❌ Folder not found or not visible to the app. Check DRIVE_FOLDER_ID and the OAuth scope.");
     }
-    return sendText("❌ Gagal membaca folder Google Drive. Periksa OAuth credentials, token, dan folder ID.");
+    return sendText("❌ Failed to read the Google Drive folder. Check the OAuth credentials, token, and folder ID.");
   }
 }

@@ -25,41 +25,41 @@ export async function run(
   mediaService = { downloadOwnBuffer, downloadQuotedBuffer },
 ) {
   if (!DRIVE.folderId) {
-    return sendText("⚠️ Isi DRIVE_FOLDER_ID di .env dengan ID folder Drive.");
+    return sendText("⚠️ Set DRIVE_FOLDER_ID in .env to your Google Drive folder ID.");
   }
 
   const hasCaption = text.trim().length > ".upload".length;
   if (hasCaption && !text.startsWith(".upload ")) {
-    return sendText("Format: kirim .upload bersama media atau balas media dengan .upload");
+    return sendText("Format: send .upload with media or reply to media with .upload");
   }
   const customName = hasCaption ? text.slice(".upload".length).trim() : "";
   const quotedMedia = getMedia(quoted);
   const ownMedia = getMedia(msg?.message);
   const media = quotedMedia || ownMedia;
   if (!media) {
-    return sendText("Kirim .upload bersama foto, video, audio, atau dokumen, atau balas media dengan .upload.");
+    return sendText("Send .upload with a photo, video, audio, or document, or reply to media with .upload.");
   }
 
   try {
     const buffer = quotedMedia
       ? await mediaService.downloadQuotedBuffer(quoted, quotedContext)
       : await mediaService.downloadOwnBuffer(msg);
-    if (!buffer?.length) return sendText("❌ Media kosong atau gagal diunduh.");
+    if (!buffer?.length) return sendText("❌ Media is empty or could not be downloaded.");
 
     const mimeType = media.mimetype || "application/octet-stream";
     const fileName = customName || inferFileName(media, mimeType, Date.now());
     const auth = await drive.authorize();
     const uploaded = await drive.uploadToDrive(auth, buffer, fileName, mimeType);
     const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
-    return sendText(`✅ File tersimpan di Google Drive\n\n*${uploaded.name || fileName}*\n🔗 ${link}`);
+    return sendText(`✅ File saved to Google Drive\n\n*${uploaded.name || fileName}*\n🔗 ${link}`);
   } catch (error) {
     console.error("upload:", error?.message || error);
     if (error?.code === 401 || error?.response?.status === 401) {
-      return sendText("❌ Token Google Drive ditolak. Jalankan ulang node get_token.js dan perbarui credentials/token.json.");
+      return sendText("❌ Google Drive token rejected. Re-run node get_token.js and update credentials/token.json.");
     }
     if (error?.code === 403 || error?.response?.status === 403) {
-      return sendText("❌ Google menolak akses Drive. Pastikan Drive API aktif dan scope drive.file sudah diizinkan.");
+      return sendText("❌ Google denied Drive access. Make sure the Drive API is enabled and the drive.file scope is allowed.");
     }
-    return sendText("❌ Gagal mengunggah file ke Google Drive. Periksa koneksi, OAuth token, dan folder ID.");
+    return sendText("❌ Failed to upload the file to Google Drive. Check the connection, OAuth token, and folder ID.");
   }
 }

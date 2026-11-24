@@ -146,7 +146,7 @@ test("Drive file filter handles unsupported filters and empty file names", () =>
 
   assert.deepEqual(filterDriveFiles(files, "photo"), [files[0]]);
   assert.deepEqual(filterDriveFiles(files, "unknown"), files);
-  assert.match(formatDriveList([], null), /Tidak ada file/);
+  assert.match(formatDriveList([], null), /No files found/);
 });
 
 test("menu advertises the Drive commands it actually implements", async () => {
