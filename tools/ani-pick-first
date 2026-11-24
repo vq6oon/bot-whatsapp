@@ -1,0 +1,5 @@
+#!/bin/sh
+# ani-cli menu shim: non-interactive selection for the WhatsApp bot.
+# ani-cli pipes its search results / episode list to a menu program on stdin.
+# This picks the first row regardless of the fzf-style flags ani-cli passes.
+exec head -n 1

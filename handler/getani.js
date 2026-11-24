@@ -1,14 +1,14 @@
 import { searchAnime } from "../src/services/anime.js";
 
-export const name = "anime";
+export const name = "getani";
 
 export function match(ctx) {
-  return ctx.text.startsWith(".anime ");
+  return ctx.text.startsWith(".getani ");
 }
 
 export async function run({ text, sock, from, sendText }) {
-  const query = text.slice(7).trim();
-  if (!query) return sendText("❗ Example: .anime Naruto");
+  const query = text.slice(8).trim();
+  if (!query) return sendText("❗ Example: .getani Naruto");
 
   try {
     const anime = await searchAnime(query);
@@ -23,7 +23,7 @@ export async function run({ text, sock, from, sendText }) {
       await sendText(caption);
     }
   } catch (error) {
-    console.error("anime:", error?.message || error);
+    console.error("getani:", error?.message || error);
     return sendText("❌ Anime search is temporarily unavailable. Try again later.");
   }
 }

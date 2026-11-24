@@ -8,7 +8,8 @@ import * as tiktok from "../handler/tiktok.js";
 import * as yt from "../handler/yt.js";
 import * as ytm from "../handler/ytm.js";
 import * as hitung from "../handler/hitung.js";
-import * as anime from "../handler/anime.js";
+import * as getani from "../handler/getani.js";
+import * as anidl from "../handler/anidl.js";
 import * as shorturl from "../handler/shorturl.js";
 import * as deviceinfo from "../handler/deviceinfo.js";
 import * as tebak from "../handler/tebak.js";
@@ -31,7 +32,8 @@ const HANDLERS = [
   yt,
   ytm,
   hitung,
-  anime,
+  getani,
+  anidl,
   shorturl,
   deviceinfo,
   tebak,

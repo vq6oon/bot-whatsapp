@@ -36,7 +36,7 @@ General tools
 └ .deviceinfo — Show device information
 
 Search
-└ .anime <title> — Search anime
+└ .getani <title> — Search anime
 
 Games
 ├ .tebakhewan — Start animal guessing game
@@ -45,6 +45,7 @@ Games
 Downloader
 ├ .yt <url> --<360|480|720|1080|best> — Download YouTube video to Drive
 ├ .ytm <url> — Download YouTube audio and send it here
+├ .anidl <title> [--ep <n>] [--<360|480|720|1080|best>] — Download anime to Drive
 └ .tiktok <url> [video|hd|audio|photo] — Download media
 
 Version ${BOT_VERSION} · ${DEVELOPER}`,
