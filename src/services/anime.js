@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -85,6 +86,15 @@ export async function probeAnimeQualities(
   return parseAnimeQualities(`${stdout}\n${stderr}`);
 }
 
+const defaultListFiles = async (dir) => {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  return Promise.all(entries.map(async (entry) => ({
+    name: entry.name,
+    isFile: () => entry.isFile(),
+    mtimeMs: (await fs.stat(path.join(dir, entry.name))).mtimeMs,
+  })));
+};
+
 export async function downloadAnimeEpisode(
   title,
   { episode = 1, quality = "best" } = {},
@@ -92,11 +102,13 @@ export async function downloadAnimeEpisode(
 ) {
   const {
     run = execFileAsync,
-    listFiles = (dir) => fs.readdir(dir, { withFileTypes: true }),
+    listFiles = defaultListFiles,
     stat = (filePath) => fs.stat(filePath),
     now = () => Date.now(),
-    downloadDir = ANIDL_DIR,
+    mkdir = (dir) => fs.mkdir(dir, { recursive: true }),
   } = options;
+
+  const downloadDir = options.downloadDir || path.join(ANIDL_DIR, `${now()}-${randomUUID()}`);
 
   if (!title || !title.trim()) throw new Error("Anime title is required.");
   if (!Number.isInteger(episode) || episode < 1) throw new Error("Episode must be a positive integer.");
@@ -106,7 +118,7 @@ export async function downloadAnimeEpisode(
     let available = options.availableQualities;
     if (!available) {
       try {
-        available = await probeAnimeQualities(title, { episode }, options);
+        available = await probeAnimeQualities(title, { episode }, { ...options, downloadDir });
       } catch (error) {
         console.error("anidl quality probe:", error?.message || error);
         available = [];
@@ -117,35 +129,42 @@ export async function downloadAnimeEpisode(
     }
   }
 
-  await fs.mkdir(downloadDir, { recursive: true });
+  await mkdir(downloadDir);
   const startedAt = now() - 2000;
   const args = ["-d", "-S", "1", "-e", String(episode), "-q", String(quality), title.trim()];
 
-  await run(ANI_CLI_BIN, args, {
-    env: animeEnv({ ANI_CLI_DOWNLOAD_DIR: downloadDir }),
-    timeout: ANI_DL_TIMEOUT_MS,
-    maxBuffer: 8 * 1024 * 1024,
-  });
+  try {
+    await run(ANI_CLI_BIN, args, {
+      env: animeEnv({ ANI_CLI_DOWNLOAD_DIR: downloadDir }),
+      timeout: ANI_DL_TIMEOUT_MS,
+      maxBuffer: 8 * 1024 * 1024,
+    });
 
-  const entries = await listFiles(downloadDir);
-  const newest = entries
-    .filter((entry) =>
-      entry.isFile?.() !== false &&
-      VIDEO_EXTENSIONS.has(path.extname(entry.name).toLowerCase()) &&
-      entry.mtimeMs >= startedAt,
-    )
-    .sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
-  if (!newest) throw new Error(`ani-cli produced no video for "${title}" episode ${episode}.`);
+    const entries = await listFiles(downloadDir);
+    const newest = entries
+      .filter((entry) =>
+        entry.isFile?.() !== false &&
+        VIDEO_EXTENSIONS.has(path.extname(entry.name).toLowerCase()) &&
+        entry.mtimeMs >= startedAt,
+      )
+      .sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
+    if (!newest) throw new Error(`ani-cli produced no video for "${title}" episode ${episode}.`);
 
-  const filePath = path.join(downloadDir, newest.name);
-  const extension = path.extname(newest.name);
-  return {
-    title: path.basename(newest.name, extension),
-    fileName: newest.name,
-    mimeType: "video/mp4",
-    filePath,
-    size: (await stat(filePath)).size,
-  };
+    const filePath = path.join(downloadDir, newest.name);
+    const extension = path.extname(newest.name);
+    return {
+      title: path.basename(newest.name, extension),
+      fileName: newest.name,
+      mimeType: "video/mp4",
+      filePath,
+      size: (await stat(filePath)).size,
+    };
+  } catch (error) {
+    if (!options.downloadDir) {
+      await fs.rm(downloadDir, { recursive: true, force: true }).catch(() => {});
+    }
+    throw error;
+  }
 }
 
 export function animeDownloadError(error) {
@@ -164,7 +183,9 @@ export function animeDownloadError(error) {
 
 export async function removeAnimeDownload(filePath) {
   if (!filePath) return;
+  const dir = path.dirname(filePath);
   await fs.rm(filePath, { force: true });
   const subtitle = filePath.replace(/\.[^.]+$/, ".vtt");
   if (subtitle !== filePath) await fs.rm(subtitle, { force: true });
+  await fs.rmdir(dir).catch(() => {});
 }

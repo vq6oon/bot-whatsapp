@@ -62,6 +62,7 @@ export async function run(
   if (!drive && !DRIVE.folderId) {
     return sendText("❌ Folder Google Drive belum dikonfigurasi.");
   }
+  await sendText(`⏳ Sedang mengunduh ${parsed.title} episode ${parsed.episode}...`);
 
   let media;
   try {

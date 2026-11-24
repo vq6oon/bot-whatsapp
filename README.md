@@ -126,7 +126,7 @@ Format tersedia: 1080p
 Coba: .anidl one piece --quality 1080
 ```
 
-The downloader sets `ANI_CLI_PLAYER=/bin/true` (ani-cli checks for a player even in download mode), `ANI_CLI_MENU=/usr/local/bin/ani-pick-first` (picks the first row instead of opening fzf), and `ANI_CLI_DOWNLOAD_DIR=data/downloads/anidl`. Files are written under `data/downloads/anidl`; only a fresh `.mp4`, `.mkv`, `.webm`, or `.m4v` newer than the invocation is used. The newest match is streamed to `DRIVE_FOLDER_ID`, the reply carries the Drive link, and both the video and its `.vtt` subtitle are removed afterwards. A missing binary becomes "ani-cli belum terpasang di server", and a killed/timeout run becomes "Unduhan anime timeout".
+The downloader sets `ANI_CLI_PLAYER=/bin/true` (ani-cli checks for a player even in download mode), `ANI_CLI_MENU=/usr/local/bin/ani-pick-first` (picks the first row instead of opening fzf), and `ANI_CLI_DOWNLOAD_DIR=data/downloads/anidl/<timestamp>-<uuid>`. Each run gets its own directory, so leftover files cannot make yt-dlp skip the download. The bot uploads the freshest `.mp4`, `.mkv`, `.webm`, or `.m4v` to `DRIVE_FOLDER_ID`, replies with the Drive link, then deletes the directory. A missing binary becomes "ani-cli belum terpasang di server", and a killed/timeout run becomes "Unduhan anime timeout".
 
 Install the host-side pieces once:
 

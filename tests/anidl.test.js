@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { DRIVE } from "../src/config.js";
 import * as anidl from "../handler/anidl.js";
 import * as getani from "../handler/getani.js";
@@ -10,6 +13,7 @@ import {
   downloadAnimeEpisode,
   parseAnimeQualities,
   probeAnimeQualities,
+  removeAnimeDownload,
 } from "../src/services/anime.js";
 
 function capture() {
@@ -85,9 +89,29 @@ test(".anidl uploads the episode to Drive and cleans up the temporary file", asy
 
   assert.deepEqual(calls[0], ["naruto", { episode: 2, quality: "480" }]);
   assert.deepEqual(uploaded[0], ["auth", episode.filePath, episode.fileName, episode.mimeType]);
-  assert.match(output.messages[0].text, /Naruto Episode 1 \(ep 2, 480p\)/);
-  assert.match(output.messages[0].text, /anime-file-1/);
+  assert.match(output.messages[1].text, /Naruto Episode 1 \(ep 2, 480p\)/);
+  assert.match(output.messages[1].text, /anime-file-1/);
   assert.deepEqual(removed, [episode.filePath]);
+});
+
+test(".anidl sends a download status before the Drive link", async () => {
+  const output = capture();
+  const { drive } = driveStub();
+  const events = [];
+
+  await anidl.run(
+    {
+      text: ".anidl naruto --ep 2 --480",
+      sendText: async (text) => { events.push(`text:${text}`); output.messages.push({ text }); },
+    },
+    async () => { events.push("download"); return episode; },
+    async () => {},
+    drive,
+  );
+
+  assert.match(events[0], /^text:⏳ Sedang mengunduh naruto episode 2/);
+  assert.equal(events[1], "download");
+  assert.match(output.messages.at(-1).text, /tersimpan di Google Drive/);
 });
 
 test(".anidl reports a missing ani-cli install without calling Drive", async () => {
@@ -102,7 +126,7 @@ test(".anidl reports a missing ani-cli install without calling Drive", async () 
   );
 
   assert.equal(uploaded.length, 0);
-  assert.match(output.messages[0].text, /ani-cli belum terpasang/);
+  assert.match(output.messages[1].text, /ani-cli belum terpasang/);
 });
 
 test(".anidl refuses to download when no Drive folder is configured", async () => {
@@ -138,7 +162,7 @@ test(".anidl reports Drive upload failures", async () => {
     drive,
   );
 
-  assert.match(output.messages[0].text, /Gagal menyimpan episode/);
+  assert.match(output.messages[1].text, /Gagal menyimpan episode/);
   assert.deepEqual(removed, [episode.filePath]);
 });
 
@@ -304,12 +328,59 @@ test("anidl.run surfaces the format list without downloading", async () => {
     async () => {},
     drive,
   );
-  assert.match(output.messages[0].text, /Format tersedia: 1080p/);
-  assert.match(output.messages[0].text, /\.anidl one piece --quality 1080/);
+  assert.match(output.messages[1].text, /Format tersedia: 1080p/);
+  assert.match(output.messages[1].text, /\.anidl one piece --quality 1080/);
 });
 
 test("animeDownloadError unwraps the quality-unavailable message", () => {
   const error = new AnimeQualityUnavailableError("naruto", 2, "480", ["1080"]);
   assert.match(animeDownloadError(error), /480 tidak tersedia/);
   assert.match(animeDownloadError(error), /Format tersedia: 1080p/);
+});
+
+test("downloadAnimeEpisode isolates each invocation in a fresh directory", async () => {
+  const calls = [];
+  const madeDirs = [];
+  await downloadAnimeEpisode("dandadan", { episode: 1, quality: "1080" }, {
+    run: async (...args) => { calls.push(args); return {}; },
+    probeQualities: false,
+    mkdir: async (dir) => { madeDirs.push(dir); },
+    now: () => 10_000,
+    listFiles: async () => [{ name: "Dandadan Episode 1.mp4", mtimeMs: 9_500, isFile: () => true }],
+    stat: async () => ({ size: 2048 }),
+  });
+
+  assert.equal(madeDirs.length, 1);
+  assert.equal(path.dirname(madeDirs[0]), path.join("data", "downloads", "anidl"));
+  assert.notEqual(madeDirs[0], path.join("data", "downloads", "anidl"));
+  assert.equal(calls[0][2].env.ANI_CLI_DOWNLOAD_DIR, madeDirs[0]);
+});
+
+test("downloadAnimeEpisode accepts a real video listed from the filesystem", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "anidl-real-"));
+  const filePath = path.join(dir, "Dandadan Episode 1.mp4");
+  await fs.writeFile(filePath, "video");
+  try {
+    const media = await downloadAnimeEpisode("dandadan", { episode: 1, quality: "best" }, {
+      run: async () => ({}),
+      probeQualities: false,
+      downloadDir: dir,
+    });
+    assert.equal(media.filePath, filePath);
+    assert.equal(media.title, "Dandadan Episode 1");
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("removeAnimeDownload removes the per-invocation directory", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "anidl-"));
+  const filePath = path.join(dir, "Dandadan Episode 1.mp4");
+  await fs.writeFile(filePath, "video");
+  await fs.writeFile(path.join(dir, "Dandadan Episode 1.vtt"), "subtitle");
+
+  await removeAnimeDownload(filePath);
+
+  await assert.rejects(fs.stat(filePath), { code: "ENOENT" });
+  await assert.rejects(fs.stat(dir), { code: "ENOENT" });
 });
