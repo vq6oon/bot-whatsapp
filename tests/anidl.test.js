@@ -124,9 +124,30 @@ test(".anidl uploads the episode to Drive and cleans up the temporary file", asy
   assert.deepEqual(calls[0], ["naruto", { episode: 2, quality: "480" }]);
   assert.deepEqual(uploaded[0], ["auth", episode.filePath, "Naruto Episode 1 (480p).mp4", episode.mimeType]);
   assert.equal(output.messages[1].text, "· Uploading episode 2 to Google Drive...");
-  assert.match(output.messages.at(-1).text, /Naruto Episode 1 \(ep 2, 480p\)/);
+  assert.match(output.messages.at(-1).text, /Naruto Episode 1 \(ep 2\) \(480p\)/);
   assert.match(output.messages.at(-1).text, /anime-file-1/);
   assert.deepEqual(removed, [episode.filePath]);
+});
+
+test(".anidl avoids duplicating the episode number in the Drive status", async () => {
+  const output = capture();
+  const { uploaded, drive } = driveStub();
+
+  await anidl.run(
+    { text: ".anidl dandadan --ep 1 --1080", sendText: output.sendText },
+    async () => ({
+      ...episode,
+      title: "Dandadan Episode 1",
+      fileName: "Dandadan Episode 1.mp4",
+      filePath: "/downloads/anidl/Dandadan Episode 1.mp4",
+    }),
+    async () => {},
+    drive,
+  );
+
+  assert.equal(uploaded[0][2], "Dandadan Episode 1 (1080p).mp4");
+  assert.match(output.messages.at(-1).text, /✓ Dandadan Episode 1 \(1080p\) saved to Google Drive/);
+  assert.doesNotMatch(output.messages.at(-1).text, /\(ep 1, 1080p\)/);
 });
 
 test(".anidl includes the best quality in the uploaded file name by default", async () => {
@@ -141,7 +162,7 @@ test(".anidl includes the best quality in the uploaded file name by default", as
   );
 
   assert.equal(uploaded[0][2], "Naruto Episode 1 (best).mp4");
-  assert.match(output.messages.at(-1).text, /\(ep 1, best\)/);
+  assert.match(output.messages.at(-1).text, /Naruto Episode 1 \(best\)/);
 });
 
 test(".anidl links the existing file when Drive already has that name", async () => {
