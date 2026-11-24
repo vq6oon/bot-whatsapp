@@ -75,6 +75,21 @@ test(".anidl parses quoted titles and episode ranges", () => {
   });
 });
 
+test(".anidl parses --format-list", () => {
+  assert.deepEqual(anidl.parseArguments(".anidl naruto --format-list"), {
+    title: "naruto",
+    episodes: [1],
+    quality: "best",
+    formatList: true,
+  });
+  assert.deepEqual(anidl.parseArguments('.anidl "yani neko" --ep 2 --format-list --quality 720'), {
+    title: "yani neko",
+    episodes: [2],
+    quality: "720",
+    formatList: true,
+  });
+});
+
 test(".anidl rejects malformed or oversized episode ranges", () => {
   for (const ep of ["0-2", "3-1", "1-21", "1-2-3", "abc"]) {
     assert.ok(anidl.parseArguments(`.anidl naruto --ep ${ep}`).error, ep);
@@ -187,6 +202,55 @@ test(".anidl downloads and uploads every episode in a range", async () => {
   assert.match(output.messages[0].text, /Downloading yani neko episodes 1-3/);
   assert.equal(output.messages.filter((message) => /saved to Google Drive/.test(message.text)).length, 3);
   assert.equal(removed.length, 3);
+});
+
+test(".anidl --format-list lists qualities without downloading", async () => {
+  const output = capture();
+  const { uploaded, drive } = driveStub();
+  const probed = [];
+  let downloads = 0;
+
+  await anidl.run(
+    { text: ".anidl yani neko --ep 2 --format-list", sendText: output.sendText },
+    async () => { downloads += 1; return episode; },
+    async () => {},
+    drive,
+    async (title, options) => {
+      probed.push([title, options.episode]);
+      return ["1080", "720", "360"];
+    },
+  );
+
+  assert.deepEqual(probed, [["yani neko", 2]]);
+  assert.equal(downloads, 0);
+  assert.equal(uploaded.length, 0);
+  assert.match(output.messages[0].text, /Checking formats for yani neko episode 2/);
+  assert.match(output.messages[1].text, /Available formats for yani neko episode 2/);
+  assert.match(output.messages[1].text, /· 1080p/);
+  assert.match(output.messages[1].text, /· 720p/);
+  assert.match(output.messages[1].text, /--quality 1080/);
+});
+
+test(".anidl --format-list handles empty and failed probes", async () => {
+  const empty = capture();
+  await anidl.run(
+    { text: ".anidl naruto --format-list", sendText: empty.sendText },
+    async () => episode,
+    async () => {},
+    undefined,
+    async () => [],
+  );
+  assert.match(empty.messages.at(-1).text, /No formats found for naruto episode 1/);
+
+  const failed = capture();
+  await anidl.run(
+    { text: ".anidl naruto --format-list", sendText: failed.sendText },
+    async () => episode,
+    async () => {},
+    undefined,
+    async () => { throw new Error("ani-cli exploded"); },
+  );
+  assert.match(failed.messages.at(-1).text, /Could not read available formats/);
 });
 
 test(".anidl sends a download status before the Drive link", async () => {

@@ -5,7 +5,9 @@ import {
   ANIME_QUALITY_PATTERN,
   MAX_ANIDL_EPISODES,
   animeDownloadError,
+  animeProbeError,
   downloadAnimeEpisode,
+  probeAnimeQualities,
   removeAnimeDownload,
 } from "../src/services/anime.js";
 
@@ -63,8 +65,13 @@ export function parseArguments(text) {
   const words = [];
   let episodes = [1];
   let quality = "best";
+  let formatList = false;
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
+    if (arg === "--format-list") {
+      formatList = true;
+      continue;
+    }
     if (arg === "--ep" || arg === "--quality") {
       const value = args[++i];
       if (!value || value.startsWith("--")) return { error: FORMAT_HINT };
@@ -90,7 +97,7 @@ export function parseArguments(text) {
 
   const title = words.join(" ").trim();
   if (!title) return { error: FORMAT_HINT };
-  return { title, episodes, quality };
+  return { title, episodes, quality, ...(formatList ? { formatList: true } : {}) };
 }
 
 export async function run(
@@ -98,9 +105,29 @@ export async function run(
   download = downloadAnimeEpisode,
   removeFile = removeAnimeDownload,
   drive,
+  probe = probeAnimeQualities,
 ) {
   const parsed = parseArguments(text);
   if (parsed.error) return sendText(parsed.error);
+  if (parsed.formatList) {
+    const episode = parsed.episodes[0];
+    await sendText(`· Checking formats for ${parsed.title} episode ${episode}...`);
+    let qualities;
+    try {
+      qualities = await probe(parsed.title, { episode });
+    } catch (error) {
+      console.error("anidl format list:", error?.message || error);
+      return sendText(animeProbeError(error));
+    }
+    if (!qualities?.length) {
+      return sendText(`✗ No formats found for ${parsed.title} episode ${episode}.`);
+    }
+    const options = qualities.map((quality) => `· ${quality}p`).join("\n");
+    return sendText(
+      `Available formats for ${parsed.title} episode ${episode}:\n${options}\n\n` +
+      `Pick one: .anidl ${parsed.title} --ep ${episode} --quality ${qualities[0]}`,
+    );
+  }
   if (!drive && !DRIVE.folderId) {
     return sendText("✗ Google Drive folder is not configured. Set DRIVE_FOLDER_ID in .env.");
   }

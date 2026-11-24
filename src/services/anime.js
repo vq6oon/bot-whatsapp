@@ -12,7 +12,7 @@ const VIDEO_EXTENSIONS = new Set([".mp4", ".mkv", ".webm", ".m4v"]);
 export const ANIME_QUALITIES = new Set(["best", "worst", "360", "480", "720", "1080"]);
 export const ANIME_QUALITY_PATTERN = /^(best|worst|360|480|720|1080)$/;
 export const MAX_ANIDL_EPISODES = 20;
-export const ANIDL_FORMAT_HINT = ".anidl <title> [--ep <n|a-b>] [--quality <q>]  # q=best|worst|360|480|720|1080, also accepts --360";
+export const ANIDL_FORMAT_HINT = ".anidl <title> [--ep <n|a-b>] [--quality <q>] [--format-list]  # q=best|worst|360|480|720|1080, also accepts --360";
 
 const ANIDL_DIR = path.join(PATHS.downloads, "anidl");
 const ANI_CLI_BIN = process.env.ANI_CLI_BIN || "ani-cli";
@@ -166,6 +166,17 @@ export async function downloadAnimeEpisode(
     }
     throw error;
   }
+}
+
+export function animeProbeError(error) {
+  const message = String(error?.message || error);
+  if (error?.code === "ENOENT" || /not found/i.test(message)) {
+    return "✗ ani-cli is not installed on the server.";
+  }
+  if (error?.killed || /timed out|timeout/i.test(message)) {
+    return "✗ Format lookup timed out. Try again later.";
+  }
+  return "✗ Could not read available formats with ani-cli.";
 }
 
 export function animeDownloadError(error) {
