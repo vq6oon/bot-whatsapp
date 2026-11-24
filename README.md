@@ -74,7 +74,7 @@ One handler runs per message: `src/router.js` walks `HANDLERS` in order and exec
 | `.scan <url>` | Google Safe Browsing diagnostic lookup |
 | `.hitung <expression>` | Calculator; input is restricted to digits, operators, parentheses, space, `%`, `.` |
 | `.getani <title>` | Anime search via `api.tenrai.org`, sends the cover image when available |
-| `.anidl <title> [--ep <n|a-b>] [--quality <q>]` | Download anime episodes with ani-cli (`<q>` = best, worst, or offered `360`/`480`/`720`/`1080`; `--720` also works) and stream them to Drive; quote titles with spaces, `--ep 1-3` downloads episodes 1-3 (max 20), default episode 1, quality `best` |
+| `.anidl <title> [--ep <n|a-b>] [--quality <q>] [--format-list]` | Download anime episodes with ani-cli (`<q>` = best, worst, or offered `360`/`480`/`720`/`1080`; `--720` also works) and stream them to Drive; quote titles with spaces, `--ep 1-3` downloads episodes 1-3 (max 20), `--format-list` only lists available qualities, default episode 1, quality `best` |
 | `.shorturl <url>` | TinyURL shortlink |
 | `.deviceinfo` | Host OS, kernel, CPU, cores, RAM, uptime |
 | `.morse <text>` / `.textmorse <code>` | Morse encode/decode |
@@ -116,7 +116,7 @@ Both handlers delete the temporary download in a `finally` block, and both turn 
 
 `.getani <title>` is the renamed anime search command. `.anime` is gone.
 
-`.anidl <title> [--ep <n|a-b>] [--quality <q>]` runs ani-cli in non-interactive download mode: `-d -S 1 -e <n> -q <q> <title>` once per episode. `-S 1` takes the first search result, `--ep` chooses one episode or an inclusive range (default `1`, max 20 episodes), and the quality defaults to `best`. Quote titles with spaces: `.anidl "yani neko" --ep 1-3 --quality 1080`. Quality can be given either as `--quality 720` or as `--720`. A bare `720`, an unknown flag, an invalid range, `--ep`/`--quality` without a value, an unterminated quote, and a title with no words are rejected before running ani-cli.
+`.anidl <title> [--ep <n|a-b>] [--quality <q>] [--format-list]` runs ani-cli in non-interactive download mode: `-d -S 1 -e <n> -q <q> <title>` once per episode. `-S 1` takes the first search result, `--ep` chooses one episode or an inclusive range (default `1`, max 20 episodes), and the quality defaults to `best`. Quote titles with spaces: `.anidl "yani neko" --ep 1-3 --quality 1080`. Quality can be given either as `--quality 720` or as `--720`. A bare `720`, an unknown flag, an invalid range, `--ep`/`--quality` without a value, an unterminated quote, and a title with no words are rejected before running ani-cli. `--format-list` skips the download and Drive entirely: it probes the first episode and replies with `Available formats` plus a ready-to-copy `--quality` command.
 
 Before downloading, the bot probes ani-cli in `debug` player mode to read the offered streams (the `All links:` block). If the requested quality is not among them it fails fast with the list, e.g. requesting `--720` on a series that only offers 1080p replies:
 
@@ -154,7 +154,7 @@ npm test
 # same as: node --test tests/drive.test.js tests/yt.test.js tests/anidl.test.js tests/help.test.js
 ```
 
-65 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anidl.test.js` covers argument parsing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the `.anime` → `.getani` rename. `tests/help.test.js` covers the `.help` listing, aliases, `<command> --help`, and the anidl help entry. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer — Node 12 rejects `--test`.
+68 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anidl.test.js` covers argument parsing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the `.anime` → `.getani` rename. `tests/help.test.js` covers the `.help` listing, aliases, `<command> --help`, and the anidl help entry. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer — Node 12 rejects `--test`.
 
 ## Notes
 
