@@ -37,7 +37,7 @@ DRIVE_FOLDER_ID=
 YOUTUBE_DL_PYTHON=
 ```
 
-`DRIVE_FOLDER_ID` is required by every Drive command. When it is empty, `.checkdrive`, `.list`, `.upload`, and the Drive path of `.ytdl` reply with a configuration warning instead of calling the API.
+`DRIVE_FOLDER_ID` is required by every Drive command. When it is empty, `.checkdrive`, `.list`, `.upload`, and `.yt` reply with a configuration warning instead of calling the API. `.ytm` needs no folder because it returns the MP3 to the chat.
 
 ## Google Drive setup
 
@@ -59,8 +59,8 @@ One handler runs per message: `src/router.js` walks `HANDLERS` in order and exec
 | `.checkdrive` | Drive folder name, file count, folder link |
 | `.list [audio\|video\|document\|photo]` | Files in the Drive folder, optionally filtered by extension, one link per file |
 | `.upload [name]` | Upload the attached or quoted media (image, video, audio, document, sticker) to Drive |
-| `.ytdl <url> [360\|720\|1080\|best]` | YouTube video: always streamed to Drive, replies with the link |
-| `.ytdl <url> mp3` | YouTube audio: files under 50 MiB go to Drive, larger ones are sent as WhatsApp audio |
+| `.yt <url> --<360\|480\|720\|1080\|best>` | YouTube video only: streamed to Drive, replies with the link. Without the flag it downloads `best` |
+| `.ytm <url>` | YouTube audio: downloads an MP3 and sends it to the chat as a playable audio message |
 | `.tiktok <url> [video\|hd\|audio\|photo]` | TikTok via tikwm.com; `hd` prefers `hdplay`, `photo` sends each slide |
 | `.tts <text>` | Google TTS voice note (`gtts`, English) |
 | `.scan <url>` | Google Safe Browsing diagnostic lookup |
@@ -88,12 +88,20 @@ src/reconnect.js        2 second reconnect, stops on loggedOut
 src/services/           drive.js, youtube.js, media.js (Baileys media download), anime.js
 src/utils/morse.js      Morse tables
 src/data/animals.js     guessing-game answers
-handler/                one module per command, each exporting name, match, run
+handler/                one module per command (yt.js and ytm.js are separate), each exporting name, match, run
 tests/                  node:test suites, no WhatsApp session needed
 tools/panel.js          optional browser editor for bot.js, port 3000
 ```
 
 A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`. `dispatch()` returns the name of the handler that matched, or `null`. Every handler receives `sock`, `msg`, `from`, `sender`, `text`, `quoted`, `quotedContext`, `sendText`; the Drive and YouTube handlers also take an injected service object so tests can stub the API.
+
+## YouTube commands
+
+`.yt` is video only. The quality flag is a `--` argument, not a bare number: `.yt <url> --720`. Accepted values are `--360`, `--480`, `--720`, `--1080`, and `--best`; omitting the flag means `best`. Anything else — a bare `720`, `--999`, a second argument — is rejected with the format hint before any download starts. `youtube.com`, any `*.youtube.com` host, and `youtu.be` pass; lookalike domains such as `youtube.com.evil.example` do not. The MP4 is uploaded to Drive and the reply carries the link, so `DRIVE_FOLDER_ID` must be set.
+
+`.ytm` takes only a URL and always produces an MP3: `downloadYoutube(url, "mp3", "best")`, then `sock.sendMessage` with `audio`, `mimetype: audio/mpeg`, `fileName`, and `ptt: false`. The audio message comes back to the chat, not Drive, so no folder is needed.
+
+Both handlers delete the temporary download in a `finally` block, and both turn yt-dlp exit code 1 into "YouTube menolak unduhan atau format tidak tersedia" instead of leaking stderr.
 
 ## Google Drive behavior
 
@@ -107,10 +115,10 @@ A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`
 
 ```bash
 npm test
-# same as: node --test tests/drive.test.js tests/ytdl.test.js
+# same as: node --test tests/drive.test.js tests/yt.test.js
 ```
 
-19 tests covering the Drive handlers (`.checkdrive`, `.list`, `.upload`, file filtering, menu contents), and the YouTube downloader (quality flags, the 50 MiB Drive threshold, MP3 path, temporary file cleanup, error replies, menu wiring). No network, no WhatsApp session, and no real Drive call: the Drive client is injected. Use Node 20 or newer — Node 12 rejects `--test`.
+23 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, file filtering, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. No network, no WhatsApp session, and no real Drive call: the Drive client is injected. Use Node 20 or newer — Node 12 rejects `--test`.
 
 ## Notes
 
