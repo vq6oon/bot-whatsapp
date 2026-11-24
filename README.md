@@ -106,14 +106,14 @@ A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`
 ## Tests
 
 ```bash
-node --test tests/drive.test.js tests/ytdl.test.js
+npm test
+# same as: node --test tests/drive.test.js tests/ytdl.test.js
 ```
 
-18 tests covering the Drive handlers (`.checkdrive`, `.list`, `.upload`, file filtering) and the YouTube downloader (quality flags, the 50 MiB Drive threshold, MP3 path, temporary file cleanup, error replies, menu wiring). No network, no WhatsApp session, and no real Drive call: the Drive client is injected. Use Node 20 or newer — Node 12 rejects `--test`. There is no `npm test` script.
+19 tests covering the Drive handlers (`.checkdrive`, `.list`, `.upload`, file filtering, menu contents), and the YouTube downloader (quality flags, the 50 MiB Drive threshold, MP3 path, temporary file cleanup, error replies, menu wiring). No network, no WhatsApp session, and no real Drive call: the Drive client is injected. Use Node 20 or newer — Node 12 rejects `--test`.
 
 ## Notes
 
-- The `.menu` caption still says `Google Drive (na) — Not integrated` and lists `.statusbot`; no `statusbot` handler exists in `HANDLERS`. The command table above follows the code, not the caption.
 - Only one message per upsert is handled (`messages[0]`), and `dispatch` stops at the first matching handler.
 - `tools/panel.js` writes edits into `bot.js` over HTTP and needs `body-parser` plus `panel/index.html`; neither ships in this repository, so treat it as a local scratch tool only.
 - Never commit `.env`, `credentials/`, or `data/`.
