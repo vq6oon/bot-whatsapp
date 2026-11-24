@@ -7,6 +7,25 @@ import { PATHS } from "../config.js";
 
 const execFileAsync = promisify(execFile);
 export const MAX_DRIVE_UPLOAD_BYTES = 50 * 1024 * 1024;
+export const QUALITY_FLAGS = new Set(["best", "360", "480", "720", "1080"]);
+export const YOUTUBE_FORMAT_HINT = ".yt <url> --<360|480|720|1080|best>";
+
+export function isYoutubeUrl(value) {
+  let hostname;
+  try {
+    hostname = new URL(value).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return hostname === "youtube.com" || hostname.endsWith(".youtube.com") || hostname === "youtu.be";
+}
+
+export function youtubeDownloadError(error) {
+  if (error?.code === 1) {
+    return "❌ YouTube menolak unduhan atau format tidak tersedia. Coba link video publik lain.";
+  }
+  return "❌ Gagal mengunduh media dari YouTube. Coba lagi nanti.";
+}
 
 export function parseYoutubeMetadata(output) {
   const title = JSON.parse(output.trimEnd());

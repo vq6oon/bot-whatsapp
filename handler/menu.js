@@ -43,8 +43,8 @@ Games
 └ .tebak <answer> — Submit answer
 
 Downloader
-├ .ytdl <url> [360|720|1080|best] — Download YouTube video
-├ .ytdl <url> mp3 — Download YouTube audio
+├ .yt <url> --<360|480|720|1080|best> — Download YouTube video to Drive
+├ .ytm <url> — Download YouTube audio and send it here
 └ .tiktok <url> [video|hd|audio|photo] — Download media
 
 Version ${BOT_VERSION} · ${DEVELOPER}`,
