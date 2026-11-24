@@ -104,6 +104,29 @@ test(".yt labels an explicit quality with the downloaded resolution when it is l
   assert.doesNotMatch(output.messages.at(-1).text, /1080p/);
 });
 
+test(".yt links the existing file when Drive already has that name", async () => {
+  const output = capture();
+  const drive = {
+    authorize: async () => "auth",
+    uploadToDrive: async () => ({
+      id: "old-video-id",
+      name: "Sample video (best).mp4",
+      webViewLink: "https://drive.google.com/file/d/old-video-id/view",
+      reused: true,
+    }),
+  };
+
+  await yt.run(
+    { text: ".yt https://youtu.be/abc123", sendText: output.sendText },
+    async () => video,
+    async () => {},
+    drive,
+  );
+
+  assert.match(output.messages.at(-1).text, /already in Google Drive/);
+  assert.match(output.messages.at(-1).text, /old-video-id/);
+});
+
 test(".yt passes the --quality flag to the downloader", async () => {
   const output = capture();
   const { uploaded, drive } = driveStub();

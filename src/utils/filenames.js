@@ -23,12 +23,3 @@ export function withQualitySuffix(fileName, quality) {
     ? fileName
     : `${base}${suffix}${ext}`;
 }
-
-export function uniqueDriveFileName(requestedName, existingNames) {
-  const taken = new Set(existingNames);
-  if (!taken.has(requestedName)) return requestedName;
-  const { base, ext } = splitFileName(requestedName);
-  let number = 2;
-  while (taken.has(`${base} (${number})${ext}`)) number += 1;
-  return `${base} (${number})${ext}`;
-}

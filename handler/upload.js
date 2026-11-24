@@ -53,7 +53,8 @@ export async function run(
     const auth = await drive.authorize();
     const uploaded = await drive.uploadToDrive(auth, buffer, fileName, mimeType);
     const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
-    return sendText(`✓ File saved to Google Drive\n\n*${uploaded.name || fileName}*\n→ ${link}`);
+    const status = uploaded.reused ? "already in Google Drive" : "saved to Google Drive";
+    return sendText(`✓ File ${status}\n\n*${uploaded.name || fileName}*\n→ ${link}`);
   } catch (error) {
     console.error("upload:", error?.message || error);
     if (error?.code === 401 || error?.response?.status === 401) {

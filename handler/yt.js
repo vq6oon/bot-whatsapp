@@ -68,7 +68,8 @@ export async function run(
         uploaded = await uploadToDrive(auth, media.filePath, uploadName, media.mimeType);
       }
       const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
-      return await sendText(`✓ ${media.title} (${quality}) saved to Google Drive\n→ ${link}`);
+      const status = uploaded.reused ? "already in Google Drive" : "saved to Google Drive";
+      return await sendText(`✓ ${media.title} (${quality}) ${status}\n→ ${link}`);
     } catch (error) {
       console.error("yt Drive upload:", error?.message || error);
       return sendText("✗ Failed to save the download to Google Drive.");

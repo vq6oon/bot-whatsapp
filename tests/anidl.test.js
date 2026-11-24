@@ -110,6 +110,29 @@ test(".anidl includes the best quality in the uploaded file name by default", as
   assert.match(output.messages.at(-1).text, /\(ep 1, best\)/);
 });
 
+test(".anidl links the existing file when Drive already has that name", async () => {
+  const output = capture();
+  const drive = {
+    authorize: async () => "auth",
+    uploadToDrive: async () => ({
+      id: "old-anime-id",
+      name: "Naruto Episode 1 (best).mp4",
+      webViewLink: "https://drive.google.com/file/d/old-anime-id/view",
+      reused: true,
+    }),
+  };
+
+  await anidl.run(
+    { text: ".anidl naruto", sendText: output.sendText },
+    async () => episode,
+    async () => {},
+    drive,
+  );
+
+  assert.match(output.messages.at(-1).text, /already in Google Drive/);
+  assert.match(output.messages.at(-1).text, /old-anime-id/);
+});
+
 test(".anidl sends a download status before the Drive link", async () => {
   const output = capture();
   const { drive } = driveStub();

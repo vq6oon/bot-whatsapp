@@ -2,7 +2,6 @@ import fs from "fs";
 import { Readable } from "node:stream";
 import { google } from "googleapis";
 import { DRIVE } from "../config.js";
-import { splitFileName, uniqueDriveFileName } from "../utils/filenames.js";
 
 export async function authorize() {
   if (!fs.existsSync(DRIVE.credentialsPath)) {
@@ -53,35 +52,35 @@ function escapeDriveValue(value) {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
-async function listMatchingNames(drive, folderId, base) {
-  const names = [];
+async function findDriveFileByName(drive, folderId, fileName) {
   let pageToken;
   do {
     const response = await drive.files.list({
-      q: `'${folderId}' in parents and name contains '${escapeDriveValue(base)}' and trashed = false`,
+      q: `'${folderId}' in parents and name = '${escapeDriveValue(fileName)}' and trashed = false`,
       pageSize: 1000,
       pageToken,
-      fields: "nextPageToken, files(name)",
+      fields: "nextPageToken, files(id, name, mimeType, webViewLink)",
     });
-    names.push(...(response.data.files || []).map((file) => file.name));
+    const match = (response.data.files || [])[0];
+    if (match) return match;
     pageToken = response.data.nextPageToken;
   } while (pageToken);
-  return names;
+  return null;
 }
 
 export async function uploadToDrive(auth, buffer, fileName, mimeType, driveClient = null) {
   const folderId = requireFolderId();
   const drive = driveClient || google.drive({ version: "v3", auth });
-  const { base } = splitFileName(fileName);
-  const existingNames = await listMatchingNames(drive, folderId, base);
-  const name = uniqueDriveFileName(fileName, existingNames);
+  const existing = await findDriveFileByName(drive, folderId, fileName);
+  if (existing) return { ...existing, reused: true };
+
   const body = typeof buffer === "string" ? fs.createReadStream(buffer) : Readable.from(buffer);
   const response = await drive.files.create({
-    requestBody: { name, parents: [folderId] },
+    requestBody: { name: fileName, parents: [folderId] },
     media: { mimeType, body },
     fields: "id, name, mimeType, webViewLink",
   });
-  return response.data;
+  return { ...response.data, reused: false };
 }
 
 export async function listDriveFiles(auth) {

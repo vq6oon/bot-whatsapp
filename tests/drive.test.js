@@ -6,7 +6,7 @@ import * as list from "../handler/list.js";
 import * as upload from "../handler/upload.js";
 import * as menu from "../handler/menu.js";
 import { filterDriveFiles, formatDriveList, uploadToDrive } from "../src/services/drive.js";
-import { uniqueDriveFileName, withQualitySuffix } from "../src/utils/filenames.js";
+import { withQualitySuffix } from "../src/utils/filenames.js";
 
 const originalFolderId = DRIVE.folderId;
 afterEach(() => {
@@ -130,6 +130,27 @@ test("upload accepts media with command caption and custom file name", async () 
   assert.match(output.messages.at(-1), /holiday\.jpg/);
 });
 
+test("upload reports the existing Drive file when a duplicate name is found", async () => {
+  DRIVE.folderId = "folder-123";
+  const output = textCollector();
+  const msg = { message: { imageMessage: { mimetype: "image/jpeg" } } };
+  const drive = {
+    authorize: async () => "auth",
+    uploadToDrive: async () => ({
+      id: "old-id",
+      name: "holiday.jpg",
+      webViewLink: "https://drive.google.com/file/d/old-id/view",
+      reused: true,
+    }),
+  };
+  const media = { downloadOwnBuffer: async () => Buffer.from("image") };
+
+  await upload.run({ ...output, text: ".upload holiday.jpg", msg }, drive, media);
+
+  assert.match(output.messages.at(-1), /already in Google Drive/);
+  assert.match(output.messages.at(-1), /old-id/);
+});
+
 test("Drive commands explain missing folder configuration without API calls", async () => {
   DRIVE.folderId = "";
   const output = textCollector();
@@ -154,16 +175,42 @@ test("Drive file filter handles unsupported filters and empty file names", () =>
   assert.match(formatDriveList([], null), /No files found/);
 });
 
-test("uploadToDrive checks existing names and picks the next free suffix", async () => {
+test("uploadToDrive reuses an exact-name file instead of creating a duplicate", async () => {
   DRIVE.folderId = "folder-123";
   const lists = [];
-  const created = [];
+  let created = 0;
   const driveClient = {
     files: {
       list: async (params) => {
         lists.push(params);
-        return { data: { files: [{ name: "clip.mp4" }, { name: "clip (2).mp4" }] } };
+        return { data: { files: [{
+          id: "old-id",
+          name: "clip.mp4",
+          mimeType: "video/mp4",
+          webViewLink: "https://drive.google.com/file/d/old-id/view",
+        }] } };
       },
+      create: async () => { created += 1; return { data: {} }; },
+    },
+  };
+
+  const result = await uploadToDrive("auth", Buffer.from("video"), "clip.mp4", "video/mp4", driveClient);
+
+  assert.equal(result.id, "old-id");
+  assert.equal(result.name, "clip.mp4");
+  assert.equal(result.reused, true);
+  assert.equal(created, 0);
+  assert.match(lists[0].q, /'folder-123' in parents/);
+  assert.match(lists[0].q, /name = 'clip\.mp4'/);
+  assert.match(lists[0].q, /trashed = false/);
+});
+
+test("uploadToDrive creates the exact name even when suffixed variants exist", async () => {
+  DRIVE.folderId = "folder-123";
+  const created = [];
+  const driveClient = {
+    files: {
+      list: async () => ({ data: { files: [{ id: "other", name: "clip (2).mp4" }] } }),
       create: async (params) => {
         created.push(params);
         return { data: { id: "new-id", name: params.requestBody.name } };
@@ -173,21 +220,10 @@ test("uploadToDrive checks existing names and picks the next free suffix", async
 
   const result = await uploadToDrive("auth", Buffer.from("video"), "clip.mp4", "video/mp4", driveClient);
 
-  assert.equal(result.name, "clip (3).mp4");
-  assert.equal(created[0].requestBody.name, "clip (3).mp4");
-  assert.match(lists[0].q, /'folder-123' in parents/);
-  assert.match(lists[0].q, /name contains 'clip'/);
-  assert.match(lists[0].q, /trashed = false/);
-});
-
-test("uniqueDriveFileName keeps the extension and skips occupied suffixes", () => {
-  assert.equal(uniqueDriveFileName("clip.mp4", []), "clip.mp4");
-  assert.equal(uniqueDriveFileName("clip.mp4", ["clip.mp4"]), "clip (2).mp4");
-  assert.equal(
-    uniqueDriveFileName("clip.mp4", ["clip.mp4", "clip (2).mp4", "clip (3).mp4"]),
-    "clip (4).mp4",
-  );
-  assert.equal(uniqueDriveFileName("notes", ["notes"]), "notes (2)");
+  assert.equal(created.length, 1);
+  assert.equal(created[0].requestBody.name, "clip.mp4");
+  assert.equal(result.name, "clip.mp4");
+  assert.equal(result.reused, false);
 });
 
 test("withQualitySuffix inserts the quality before the extension once", () => {

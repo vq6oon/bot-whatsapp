@@ -88,8 +88,9 @@ export async function run(
       const uploadName = withQualitySuffix(media.fileName, quality);
       const uploaded = await driveApi.uploadToDrive(auth, media.filePath, uploadName, media.mimeType);
       const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
+      const status = uploaded.reused ? "already in Google Drive" : "saved to Google Drive";
       return await sendText(
-        `✓ ${media.title} (ep ${parsed.episode}, ${quality}) saved to Google Drive\n→ ${link}`,
+        `✓ ${media.title} (ep ${parsed.episode}, ${quality}) ${status}\n→ ${link}`,
       );
     } catch (error) {
       console.error("anidl Drive upload:", error?.message || error);
