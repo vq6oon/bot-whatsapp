@@ -157,7 +157,7 @@ test("menu advertises the Drive commands it actually implements", async () => {
 
   assert.ok(sent.image.length > 0);
   assert.match(sent.caption, /\.checkdrive/);
-  assert.match(sent.caption, /\.list \[audio\|video\|document\|photo\]/);
+  assert.match(sent.caption, /\.list \[type\]/);
   assert.match(sent.caption, /\.upload \[name\]/);
   assert.doesNotMatch(sent.caption, /\(na\)/);
   assert.doesNotMatch(sent.caption, /Not integrated/);

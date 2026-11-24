@@ -4,7 +4,13 @@ import { DRIVE } from "../src/config.js";
 import * as anidl from "../handler/anidl.js";
 import * as getani from "../handler/getani.js";
 import * as menu from "../handler/menu.js";
-import { animeDownloadError, downloadAnimeEpisode } from "../src/services/anime.js";
+import {
+  AnimeQualityUnavailableError,
+  animeDownloadError,
+  downloadAnimeEpisode,
+  parseAnimeQualities,
+  probeAnimeQualities,
+} from "../src/services/anime.js";
 
 function capture() {
   const messages = [];
@@ -143,6 +149,7 @@ test("downloadAnimeEpisode passes non-interactive flags and picks the newest fre
     { episode: 4, quality: "720" },
     {
       run: async (...args) => { calls.push(args); return { stdout: "", stderr: "" }; },
+      probeQualities: false,
       now: () => 10_000,
       downloadDir: "/tmp/anidl-test",
       listFiles: async () => [
@@ -168,6 +175,7 @@ test("downloadAnimeEpisode fails when ani-cli produces no fresh video", async ()
   await assert.rejects(
     downloadAnimeEpisode("naruto", {}, {
       run: async () => ({}),
+      probeQualities: false,
       now: () => 10_000,
       downloadDir: "/tmp/anidl-test",
       listFiles: async () => [{ name: "old.mp4", mtimeMs: 1_000, isFile: () => true }],
@@ -196,5 +204,112 @@ test(".getani replaces .anime and both new commands are advertised in the menu",
   });
   assert.match(sent.caption, /\.getani <title>/);
   assert.match(sent.caption, /\.anidl <title>/);
+  assert.match(sent.caption, /\.help \[command\]/);
   assert.doesNotMatch(sent.caption, /\.anime/);
+});
+
+test(".anidl accepts the --quality <q> spelling", () => {
+  assert.deepEqual(anidl.parseArguments(".anidl one piece --quality 720"), {
+    title: "one piece",
+    episode: 1,
+    quality: "720",
+  });
+  assert.deepEqual(anidl.parseArguments(".anidl one piece --ep 5 --quality best"), {
+    title: "one piece",
+    episode: 5,
+    quality: "best",
+  });
+});
+
+test(".anidl rejects quality values outside the known set", () => {
+  assert.ok(anidl.parseArguments(".anidl naruto --999").error);
+  assert.ok(anidl.parseArguments(".anidl naruto --quality 1080p").error);
+  assert.ok(anidl.parseArguments(".anidl naruto --quality").error);
+});
+
+test("parseAnimeQualities extracts the offered streams from the debug output", () => {
+  const output = [
+    "All links:",
+    "1080 >https://hls.example/1080/index.m3u8",
+    "720 >https://hls.example/720/index.m3u8",
+    "480 >https://hls.example/480/index.m3u8",
+    "Selected link:",
+    "https://hls.example/1080/index.m3u8",
+  ].join("\n");
+  assert.deepEqual(parseAnimeQualities(output), ["1080", "720", "480"]);
+  assert.deepEqual(parseAnimeQualities("All links:\n360 >x\nSelected link:y\n360 >z"), ["360"]);
+});
+
+test("probeAnimeQualities runs ani-cli in debug mode and parses the links", async () => {
+  const calls = [];
+  const qualities = await probeAnimeQualities("naruto", { episode: 2 }, {
+    run: async (...args) => {
+      calls.push(args);
+      return { stdout: "All links:\n1080 >https://hls.example/1080/index.m3u8\nSelected link:\nhttps://hls.example/1080/index.m3u8\n", stderr: "" };
+    },
+  });
+  assert.equal(calls[0][0], "ani-cli");
+  assert.deepEqual(calls[0][1], ["-S", "1", "-e", "2", "-q", "best", "naruto"]);
+  assert.equal(calls[0][2].env.ANI_CLI_PLAYER, "debug");
+  assert.deepEqual(qualities, ["1080"]);
+});
+
+test("downloadAnimeEpisode fails with the quality list when the requested format is absent", async () => {
+  await assert.rejects(
+    downloadAnimeEpisode("one piece", { episode: 1, quality: "720" }, {
+      availableQualities: ["1080"],
+      probeQualities: false,
+    }),
+    (error) => {
+      assert.ok(error instanceof AnimeQualityUnavailableError);
+      assert.match(error.message, /720 tidak tersedia/);
+      assert.match(error.message, /Format tersedia: 1080p/);
+      assert.match(error.message, /\.anidl one piece --quality 1080/);
+      return true;
+    },
+  );
+});
+
+test("downloadAnimeEpisode treats best and worst as valid against a numeric format list", async () => {
+  for (const quality of ["best", "worst"]) {
+    const media = await downloadAnimeEpisode(
+      "dandadan",
+      { episode: 1, quality },
+      {
+        availableQualities: ["1080", "720", "360"],
+        probeQualities: false,
+        run: async (...args) => {
+          assert.equal(args[1][args[1].length - 3], "-q");
+          assert.equal(args[1][args[1].length - 2], quality);
+          return {};
+        },
+        now: () => 10_000,
+        downloadDir: "/tmp/anidl-test",
+        listFiles: async () => [{ name: "Dandadan Episode 1.mp4", mtimeMs: 9_500, isFile: () => true }],
+        stat: async () => ({ size: 2048 }),
+      },
+    );
+    assert.equal(media.title, "Dandadan Episode 1");
+  }
+});
+
+test("anidl.run surfaces the format list without downloading", async () => {
+  const output = capture();
+  const drive = driveStub().drive;
+  await anidl.run(
+    { text: ".anidl one piece --quality 720", sendText: output.sendText },
+    async () => {
+      throw new AnimeQualityUnavailableError("one piece", 1, "720", ["1080"]);
+    },
+    async () => {},
+    drive,
+  );
+  assert.match(output.messages[0].text, /Format tersedia: 1080p/);
+  assert.match(output.messages[0].text, /\.anidl one piece --quality 1080/);
+});
+
+test("animeDownloadError unwraps the quality-unavailable message", () => {
+  const error = new AnimeQualityUnavailableError("naruto", 2, "480", ["1080"]);
+  assert.match(animeDownloadError(error), /480 tidak tersedia/);
+  assert.match(animeDownloadError(error), /Format tersedia: 1080p/);
 });

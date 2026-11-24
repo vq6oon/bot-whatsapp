@@ -1,7 +1,7 @@
 import { DRIVE } from "../src/config.js";
 import {
   ANIDL_FORMAT_HINT,
-  ANIME_QUALITIES,
+  ANIME_QUALITY_PATTERN,
   animeDownloadError,
   downloadAnimeEpisode,
   removeAnimeDownload,
@@ -24,19 +24,25 @@ export function parseArguments(text) {
   let quality = "best";
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
-    if (arg === "--ep") {
+    if (arg === "--ep" || arg === "--quality") {
       const value = args[++i];
-      if (!/^\d+$/.test(value || "")) return { error: FORMAT_HINT };
-      episode = Number(value);
+      if (!value || value.startsWith("--")) return { error: FORMAT_HINT };
+      if (arg === "--quality") {
+        if (!ANIME_QUALITY_PATTERN.test(value)) return { error: FORMAT_HINT };
+        quality = value;
+      } else {
+        if (!/^\d+$/.test(value)) return { error: FORMAT_HINT };
+        episode = Number(value);
+      }
       continue;
     }
     if (arg.startsWith("--")) {
       const flag = arg.slice(2);
-      if (!ANIME_QUALITIES.has(flag)) return { error: FORMAT_HINT };
+      if (!ANIME_QUALITY_PATTERN.test(flag)) return { error: FORMAT_HINT };
       quality = flag;
       continue;
     }
-    if (ANIME_QUALITIES.has(arg)) return { error: FORMAT_HINT };
+    if (ANIME_QUALITY_PATTERN.test(arg)) return { error: FORMAT_HINT };
     words.push(arg);
   }
 
@@ -60,7 +66,10 @@ export async function run(
   let media;
   try {
     try {
-      media = await download(parsed.title, { episode: parsed.episode, quality: parsed.quality });
+      media = await download(parsed.title, {
+        episode: parsed.episode,
+        quality: parsed.quality,
+      });
     } catch (error) {
       console.error("anidl download:", error?.message || error);
       return sendText(animeDownloadError(error));

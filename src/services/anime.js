@@ -8,13 +8,26 @@ const execFileAsync = promisify(execFile);
 const API_URL = "https://api.tenrai.org/v1/anime";
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mkv", ".webm", ".m4v"]);
 
-export const ANIME_QUALITIES = new Set(["best", "360", "480", "720", "1080"]);
-export const ANIDL_FORMAT_HINT = ".anidl <title> [--ep <n>] [--<360|480|720|1080|best>]";
+export const ANIME_QUALITIES = new Set(["best", "worst", "360", "480", "720", "1080"]);
+export const ANIME_QUALITY_PATTERN = /^(best|worst|360|480|720|1080)$/;
+export const ANIDL_FORMAT_HINT = ".anidl <title> [--ep <n>] [--quality <q>]  # q=best|worst|360|480|720|1080, bisa ditulis --360";
 
 const ANIDL_DIR = path.join(PATHS.downloads, "anidl");
 const ANI_CLI_BIN = process.env.ANI_CLI_BIN || "ani-cli";
 const ANI_CLI_MENU = process.env.ANI_CLI_MENU || "/usr/local/bin/ani-pick-first";
 const ANI_DL_TIMEOUT_MS = Number(process.env.ANI_DL_TIMEOUT_MS || 15 * 60 * 1000);
+const ANI_PROBE_TIMEOUT_MS = 60_000;
+
+function animeEnv(overrides = {}) {
+  return {
+    ...process.env,
+    ANI_CLI_PLAYER: "/bin/true",
+    ANI_CLI_MENU,
+    ANI_CLI_DOWNLOAD_DIR: ANIDL_DIR,
+    TERM: "dumb",
+    ...overrides,
+  };
+}
 
 export async function searchAnime(query, fetchImpl) {
   const fetch = fetchImpl || (await import("node-fetch")).default;
@@ -32,6 +45,46 @@ export async function searchAnime(query, fetchImpl) {
   return json.data?.[0] ?? null;
 }
 
+export class AnimeQualityUnavailableError extends Error {
+  constructor(title, episode, requested, available) {
+    const formats = available.map((quality) => `${quality}p`).join(", ");
+    super(
+      `❌ Format ${requested} tidak tersedia untuk ${title} episode ${episode}.\n` +
+      `Format tersedia: ${formats}\n` +
+      `Coba: .anidl ${title} --quality ${available[0]}`,
+    );
+    this.name = "AnimeQualityUnavailableError";
+    this.title = title;
+    this.episode = episode;
+    this.requested = requested;
+    this.available = available;
+  }
+}
+
+export function parseAnimeQualities(output) {
+  const block = String(output || "").split("All links:")[1]?.split("Selected link:")[0] ?? "";
+  return [...new Set([...block.matchAll(/^(\d{3,4})\s*>/gm)].map((match) => match[1]))]
+    .sort((a, b) => Number(b) - Number(a));
+}
+
+export async function probeAnimeQualities(
+  title,
+  { episode = 1 } = {},
+  options = {},
+) {
+  const run = options.run || execFileAsync;
+  const { stdout = "", stderr = "" } = await run(
+    ANI_CLI_BIN,
+    ["-S", "1", "-e", String(episode), "-q", "best", title],
+    {
+      env: animeEnv({ ANI_CLI_PLAYER: "debug", ANI_CLI_DOWNLOAD_DIR: options.downloadDir || ANIDL_DIR }),
+      timeout: ANI_PROBE_TIMEOUT_MS,
+      maxBuffer: 8 * 1024 * 1024,
+    },
+  );
+  return parseAnimeQualities(`${stdout}\n${stderr}`);
+}
+
 export async function downloadAnimeEpisode(
   title,
   { episode = 1, quality = "best" } = {},
@@ -47,20 +100,29 @@ export async function downloadAnimeEpisode(
 
   if (!title || !title.trim()) throw new Error("Anime title is required.");
   if (!Number.isInteger(episode) || episode < 1) throw new Error("Episode must be a positive integer.");
-  if (!ANIME_QUALITIES.has(String(quality))) throw new Error(`Unsupported quality: ${quality}`);
+  if (!ANIME_QUALITY_PATTERN.test(String(quality))) throw new Error(`Unsupported quality: ${quality}`);
+
+  if (options.availableQualities || options.probeQualities !== false) {
+    let available = options.availableQualities;
+    if (!available) {
+      try {
+        available = await probeAnimeQualities(title, { episode }, options);
+      } catch (error) {
+        console.error("anidl quality probe:", error?.message || error);
+        available = [];
+      }
+    }
+    if (available.length && !["best", "worst"].includes(String(quality)) && !available.includes(String(quality))) {
+      throw new AnimeQualityUnavailableError(title, episode, String(quality), available);
+    }
+  }
 
   await fs.mkdir(downloadDir, { recursive: true });
   const startedAt = now() - 2000;
   const args = ["-d", "-S", "1", "-e", String(episode), "-q", String(quality), title.trim()];
 
   await run(ANI_CLI_BIN, args, {
-    env: {
-      ...process.env,
-      ANI_CLI_PLAYER: "/bin/true",
-      ANI_CLI_MENU,
-      ANI_CLI_DOWNLOAD_DIR: downloadDir,
-      TERM: "dumb",
-    },
+    env: animeEnv({ ANI_CLI_DOWNLOAD_DIR: downloadDir }),
     timeout: ANI_DL_TIMEOUT_MS,
     maxBuffer: 8 * 1024 * 1024,
   });
@@ -87,6 +149,9 @@ export async function downloadAnimeEpisode(
 }
 
 export function animeDownloadError(error) {
+  if (error instanceof AnimeQualityUnavailableError || error?.name === "AnimeQualityUnavailableError") {
+    return error.message;
+  }
   const message = String(error?.message || error);
   if (error?.code === "ENOENT" || /not found/i.test(message)) {
     return "❌ ani-cli belum terpasang di server.";

@@ -260,15 +260,17 @@ test(".yt and .ytm match only their own command prefix", () => {
   assert.equal(ytm.match({ text: ".yt https://youtu.be/abc123" }), false);
 });
 
-test("menu advertises .yt with a quality flag and .ytm without one", async () => {
+test("menu advertises .yt, .ytm and points to per-command help", async () => {
   let sent = null;
   const sock = { sendMessage: async (_from, message) => { sent = message; } };
 
   await menu.run({ sock, from: "chat@s.whatsapp.net" });
 
-  assert.match(sent.caption, /\.yt <url> --<360\|480\|720\|1080\|best>/);
+  assert.match(sent.caption, /\.yt <url>/);
   assert.match(sent.caption, /\.ytm <url>/);
   assert.match(sent.caption, /\.tiktok <url>/);
+  assert.match(sent.caption, /\.help yt/);
+  assert.match(sent.caption, /\.help anidl/);
   assert.doesNotMatch(sent.caption, /\.ytdl/);
   assert.doesNotMatch(sent.caption, /mp3/);
 });

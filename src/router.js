@@ -1,3 +1,4 @@
+import * as help from "../handler/help.js";
 import * as menu from "../handler/menu.js";
 import * as info from "../handler/info.js";
 import * as rules from "../handler/rules.js";
@@ -22,6 +23,7 @@ import * as sticker from "../handler/sticker.js";
 
 // Handler order determines command matching priority.
 const HANDLERS = [
+  help,
   menu,
   info,
   rules,

@@ -10,44 +10,6 @@ export function match(ctx) {
 export async function run({ sock, from }) {
   return sock.sendMessage(from, {
     image: fs.readFileSync(PATHS.banner),
-    caption: `Lamp1on-Bot
-
-Type .rules for usage rules.
-
-Information
-├ .menu — Show this menu
-├ .info — Show bot information
-└ .rules — Show usage rules
-
-Google Drive
-├ .checkdrive — Check Drive folder status
-├ .list [audio|video|document|photo] — List Drive files
-└ .upload [name] — Upload media to Drive
-
-General tools
-├ .tts <text> — Convert text to speech
-├ .morse <text> — Encode text as Morse code
-├ .textmorse <code> — Decode Morse code
-├ .encode64 <text> — Encode Base64
-├ .decode64 <code> — Decode Base64
-├ .hitung <expression> — Calculate expression
-├ .shorturl <url> — Shorten URL
-├ .scan <url> — Check URL safety
-└ .deviceinfo — Show device information
-
-Search
-└ .getani <title> — Search anime
-
-Games
-├ .tebakhewan — Start animal guessing game
-└ .tebak <answer> — Submit answer
-
-Downloader
-├ .yt <url> --<360|480|720|1080|best> — Download YouTube video to Drive
-├ .ytm <url> — Download YouTube audio and send it here
-├ .anidl <title> [--ep <n>] [--<360|480|720|1080|best>] — Download anime to Drive
-└ .tiktok <url> [video|hd|audio|photo] — Download media
-
-Version ${BOT_VERSION} · ${DEVELOPER}`,
+    caption: `Lamp1on-Bot\n\nType .rules for usage rules.\n\nInformation\n├ .help [command] — Show help for every / one command\n├ .info — Show bot information\n└ .rules — Show usage rules\n\nDownloader\n├ .yt <url> — YouTube video to Drive (.help yt)\n├ .ytm <url> — YouTube audio to chat (.help ytm)\n├ .anidl <title> — Anime to Drive (.help anidl)\n└ .tiktok <url> — TikTok media (.help tiktok)\n\nGoogle Drive\n├ .checkdrive — Check Drive folder status\n├ .list [type] — List Drive files (.help list)\n└ .upload [name] — Upload media to Drive\n\nSearch\n├ .getani <title> — Search anime (.help getani)\n├ .scan <url> — Check URL safety\n└ .shorturl <url> — Shorten URL\n\nGeneral tools\n├ .tts <text> — Text to speech\n├ .hitung <expression> — Calculate\n├ .morse / .textmorse — Morse\n├ .encode64 / .decode64 — Base64\n├ .biner / .binarytext — Binary\n├ .deviceinfo — Device info\n└ .tebakhewan / .tebak — Guessing game (.help tebak)\n\nSticker: .sticker / .s (lampirkan gambar)\n\nVersion ${BOT_VERSION} · ${DEVELOPER}`,
   });
 }
