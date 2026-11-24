@@ -1,12 +1,15 @@
 # Lamp1on-Bot
 
-WhatsApp bot for media downloads and lightweight text utilities. Built with Baileys v6 and Node.js. Version 2.0.0.
+WhatsApp bot built on Baileys v6 and Node.js. It downloads media (YouTube, TikTok), stores large files in Google Drive, and bundles small text utilities. Version 2.0.0, ESM (`"type": "module"`).
 
 ## Requirements
 
-- Node.js 20 or newer
-- `ffmpeg` available on `PATH`
-- Google Drive: (na) — not integrated yet
+- Node.js 20 or newer (`engines.node` is `>=20`; the test runner needs `node --test`)
+- `ffmpeg` on `PATH` — yt-dlp uses it to extract MP3 and mux MP4
+- `python3.11` on `PATH` — `youtube-dl-exec` is invoked as `python3.11 <youtube-dl-binary>`; override with `YOUTUBE_DL_PYTHON`
+- Google OAuth client and token for the Drive commands (see Drive setup)
+
+## Install and run
 
 ```bash
 git clone git@github.com:vq6oon/bot-whatsapp.git
@@ -15,64 +18,102 @@ npm ci
 npm start
 ```
 
-Requires Node.js 20 or newer and SSH access to the private repository. On first start, scan the QR code shown in the terminal using WhatsApp → Linked Devices → Link a device. Keep `data/auth_info/`; it stores the linked session so later starts do not need another scan. This directory is ignored by Git.
+`npm start` runs `node bot.js`, which loads `.env` through `dotenv/config` and calls `startBot()` in `src/bot.js`. On first start a QR code is printed; scan it from WhatsApp → Linked Devices. The session is stored in `data/auth_info/` (`useMultiFileAuthState`), so later starts do not need another scan. Set `WA_PAIR_NUMBER` in `.env` to log in with a pairing code instead — the code is requested three seconds after socket creation and printed as `Pairing code: XXXXXXXX`.
 
-Create `.env` only if needed:
+Runtime files, all under `data/` and ignored by Git: `data/auth_info/` (session), `data/downloads/`, `data/logs/`.
+
+## Environment
+
+Three variables are read by the code:
 
 ```dotenv
-DRIVE_FOLDER_ID=your_google_drive_folder_id
+# Bot phone number for pairing-code login; empty means QR login
+WA_PAIR_NUMBER=
+
+# Google Drive folder that stores uploads and YouTube downloads
+DRIVE_FOLDER_ID=
+
+# Python interpreter used to run the bundled yt-dlp binary (default: python3.11)
+YOUTUBE_DL_PYTHON=
 ```
 
-`DRIVE_FOLDER_ID` is optional. Google Drive commands are not integrated yet. Pairing-code login is not documented or supported; use the QR code.
+`DRIVE_FOLDER_ID` is required by every Drive command. When it is empty, `.checkdrive`, `.list`, `.upload`, and the Drive path of `.ytdl` reply with a configuration warning instead of calling the API.
+
+## Google Drive setup
+
+1. Create an OAuth client of type *Desktop app* in Google Cloud Console, enable the Drive API, and save the JSON as `credentials/credentials.json`.
+2. Run `node get_token.js` on a machine with a browser. It prints an authorization URL, asks for the pasted code, and writes `credentials/token.json`.
+3. Restart the bot.
+
+Both files are ignored by Git. The requested scope is `https://www.googleapis.com/auth/drive` (`DRIVE.scopes` in `src/config.js`), which is what lets the bot list and read a folder it did not create. With the narrower `drive.file` scope, Google answers 403/404 for pre-existing folders and the handlers tell the user to re-run OAuth.
 
 ## Commands
 
-| Command | Description |
+One handler runs per message: `src/router.js` walks `HANDLERS` in order and executes the first `match(ctx)` that returns true.
+
+| Command | Behavior |
 | --- | --- |
-| `.menu` | Show available commands |
-| `.info` | Show bot information and version |
-| `.rules` | Show usage rules |
-| `.checkdrive`, `.list`, `.upload` | Google Drive: (na), not integrated yet |
-| `.tts <text>` | Convert text to a voice note |
-| `.scan <url>` | Check URL reputation |
-| `.tiktok <url> [video|hd|audio|photo]` | Download TikTok video (standard or HD), audio, or photo |
-| `.hitung <expression>` | Calculator |
-| `.anime <title>` | Search anime information from Jikan |
-| `.shorturl <url>` | Shorten a URL |
-| `.deviceinfo` | Show bot host status |
-| `.morse`, `.textmorse` | Encode/decode Morse code |
-| `.encode64`, `.decode64` | Encode/decode Base64 |
-| `.biner`, `.textbinary`, `.binarytext` | Convert text to/from binary |
-| `.tebakhewan`, `.tebak <answer>` | Animal guessing game |
-| `.sticker`, `.s` | Convert an image to a sticker |
+| `.menu` | Banner image plus grouped command list |
+| `.info` | Bot name, developer, framework, version from `src/config.js` |
+| `.rules` | Usage rules |
+| `.checkdrive` | Drive folder name, file count, folder link |
+| `.list [audio\|video\|document\|photo]` | Files in the Drive folder, optionally filtered by extension, one link per file |
+| `.upload [name]` | Upload the attached or quoted media (image, video, audio, document, sticker) to Drive |
+| `.ytdl <url> [360\|720\|1080\|best]` | YouTube video: always streamed to Drive, replies with the link |
+| `.ytdl <url> mp3` | YouTube audio: files under 50 MiB go to Drive, larger ones are sent as WhatsApp audio |
+| `.tiktok <url> [video\|hd\|audio\|photo]` | TikTok via tikwm.com; `hd` prefers `hdplay`, `photo` sends each slide |
+| `.tts <text>` | Google TTS voice note (`gtts`, English) |
+| `.scan <url>` | Google Safe Browsing diagnostic lookup |
+| `.hitung <expression>` | Calculator; input is restricted to digits, operators, parentheses, space, `%`, `.` |
+| `.anime <title>` | Anime search via `api.tenrai.org`, sends the cover image when available |
+| `.shorturl <url>` | TinyURL shortlink |
+| `.deviceinfo` | Host OS, kernel, CPU, cores, RAM, uptime |
+| `.morse <text>` / `.textmorse <code>` | Morse encode/decode |
+| `.encode64 <text>` / `.decode64 <code>` | Base64 encode/decode |
+| `.biner <text>`, `.textbinary <text>`, `.binarytext <code>` | Binary conversion |
+| `.tebakhewan` / `.tebak <answer>` | Animal guessing game, 60 second timeout, one game per process |
+| `.sticker` / `.s` | Convert an image to a 512×512 WebP sticker (`sharp`) |
 
-## Project structure
+## Project layout
 
 ```
-bot.js              entry point; loads .env and starts the bot
-src/bot.js          Baileys socket, QR/pairing, incoming messages
-src/router.js       handler registry and command dispatch
-src/config.js       version, paths, and configuration
-src/logger.js       console and file logging
-src/services/       Drive, media, and YouTube services
-src/utils/          Morse utilities
-src/data/           game data
-handler/            one file per command
-tests/              router tests that do not connect to WhatsApp
-tools/panel.js       optional code editor panel
+bot.js                  entry point: dotenv plus startBot()
+get_token.js            one-time OAuth flow, writes credentials/token.json
+src/bot.js              Baileys socket, QR and pairing login, message dispatch, reconnect
+src/router.js           HANDLERS registry and first-match dispatch
+src/config.js           bot identity, PATHS, DRIVE settings
+src/logger.js           console plus data/logs/<date>.log logging
+src/message-filter.js   skips own messages and @channel traffic
+src/reconnect.js        2 second reconnect, stops on loggedOut
+src/services/           drive.js, youtube.js, media.js (Baileys media download), anime.js
+src/utils/morse.js      Morse tables
+src/data/animals.js     guessing-game answers
+handler/                one module per command, each exporting name, match, run
+tests/                  node:test suites, no WhatsApp session needed
+tools/panel.js          optional browser editor for bot.js, port 3000
 ```
 
-Runtime files are stored under `data/`: WhatsApp session, downloads, and logs. This directory is ignored by Git.
+A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`. `dispatch()` returns the name of the handler that matched, or `null`. Every handler receives `sock`, `msg`, `from`, `sender`, `text`, `quoted`, `quotedContext`, `sendText`; the Drive and YouTube handlers also take an injected service object so tests can stub the API.
+
+## Google Drive behavior
+
+- `src/services/drive.js` reads `credentials/credentials.json` (installed or web client) and `credentials/token.json`, then builds a Drive v3 client per call. Expired tokens are refreshed by the `googleapis` client.
+- `uploadToDrive` accepts a file path (streamed with `createReadStream`) or a buffer (`Readable.from`). It creates a new file inside `DRIVE_FOLDER_ID`; it does not replace same-name files and does not change sharing permissions.
+- `listDriveFiles` walks `nextPageToken` in 100-file pages ordered by name; `getDriveQuota` reports usage, limit, and free space in GB.
+- `.list` groups files by extension into audio, video, document, and photo.
+- 401/403/404 responses are translated into OAuth and folder-permission hints.
 
 ## Tests
 
 ```bash
-npm test
+node --test tests/drive.test.js tests/ytdl.test.js
 ```
 
-Tests invoke `dispatch()` with a mock socket and do not require a WhatsApp session.
+18 tests covering the Drive handlers (`.checkdrive`, `.list`, `.upload`, file filtering) and the YouTube downloader (quality flags, the 50 MiB Drive threshold, MP3 path, temporary file cleanup, error replies, menu wiring). No network, no WhatsApp session, and no real Drive call: the Drive client is injected. Use Node 20 or newer — Node 12 rejects `--test`. There is no `npm test` script.
 
 ## Notes
 
-- Credentials and WhatsApp session files are excluded from Git. Never commit them.
-- Google Drive commands return `(na)` until integration is implemented.
+- The `.menu` caption still says `Google Drive (na) — Not integrated` and lists `.statusbot`; no `statusbot` handler exists in `HANDLERS`. The command table above follows the code, not the caption.
+- Only one message per upsert is handled (`messages[0]`), and `dispatch` stops at the first matching handler.
+- `tools/panel.js` writes edits into `bot.js` over HTTP and needs `body-parser` plus `panel/index.html`; neither ships in this repository, so treat it as a local scratch tool only.
+- Never commit `.env`, `credentials/`, or `data/`.
