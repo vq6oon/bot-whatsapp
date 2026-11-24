@@ -102,8 +102,10 @@ test("upload stores quoted WhatsApp media in Drive without sharing it publicly",
   assert.equal(uploaded[0][1].toString(), "test pdf");
   assert.equal(uploaded[0][2], "report.pdf");
   assert.equal(uploaded[0][3], "application/pdf");
-  assert.match(output.messages[0], /report\.pdf/);
-  assert.match(output.messages[0], /drive\.google\.com/);
+  assert.equal(output.messages[0], "Downloading media...");
+  assert.equal(output.messages[1], "Uploading to Google Drive...");
+  assert.match(output.messages.at(-1), /report\.pdf/);
+  assert.match(output.messages.at(-1), /drive\.google\.com/);
 });
 
 test("upload accepts media with command caption and custom file name", async () => {
@@ -123,7 +125,7 @@ test("upload accepts media with command caption and custom file name", async () 
   await upload.run({ ...output, text: ".upload holiday.jpg", msg }, drive, media);
 
   assert.equal(uploadedFileName, "holiday.jpg");
-  assert.match(output.messages[0], /holiday\.jpg/);
+  assert.match(output.messages.at(-1), /holiday\.jpg/);
 });
 
 test("Drive commands explain missing folder configuration without API calls", async () => {

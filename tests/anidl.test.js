@@ -89,8 +89,9 @@ test(".anidl uploads the episode to Drive and cleans up the temporary file", asy
 
   assert.deepEqual(calls[0], ["naruto", { episode: 2, quality: "480" }]);
   assert.deepEqual(uploaded[0], ["auth", episode.filePath, "Naruto Episode 1 (480p).mp4", episode.mimeType]);
-  assert.match(output.messages[1].text, /Naruto Episode 1 \(ep 2, 480p\)/);
-  assert.match(output.messages[1].text, /anime-file-1/);
+  assert.equal(output.messages[1].text, "Uploading to Google Drive...");
+  assert.match(output.messages.at(-1).text, /Naruto Episode 1 \(ep 2, 480p\)/);
+  assert.match(output.messages.at(-1).text, /anime-file-1/);
   assert.deepEqual(removed, [episode.filePath]);
 });
 
@@ -141,7 +142,7 @@ test(".anidl reports a missing ani-cli install without calling Drive", async () 
   );
 
   assert.equal(uploaded.length, 0);
-  assert.match(output.messages[1].text, /ani-cli is not installed/);
+  assert.match(output.messages.at(-1).text, /ani-cli is not installed/);
 });
 
 test(".anidl refuses to download when no Drive folder is configured", async () => {
@@ -177,7 +178,7 @@ test(".anidl reports Drive upload failures", async () => {
     drive,
   );
 
-  assert.match(output.messages[1].text, /Failed to save the episode/);
+  assert.match(output.messages.at(-1).text, /Failed to save the episode/);
   assert.deepEqual(removed, [episode.filePath]);
 });
 

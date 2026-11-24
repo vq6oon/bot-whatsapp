@@ -59,8 +59,10 @@ test(".yt uploads the best available video to Drive by default", async () => {
 
   assert.deepEqual(calls[0], ["https://youtu.be/abc123", "mp4", "best"]);
   assert.deepEqual(uploaded[0], ["auth", video.filePath, "Sample video (best).mp4", video.mimeType]);
-  assert.match(output.messages[0].text, /Sample video \(best\)/);
-  assert.match(output.messages[0].text, /drive-file-1/);
+  assert.equal(output.messages[0].text, "Downloading video...");
+  assert.equal(output.messages[1].text, "Uploading to Google Drive...");
+  assert.match(output.messages.at(-1).text, /Sample video \(best\)/);
+  assert.match(output.messages.at(-1).text, /drive-file-1/);
 });
 
 test(".yt passes the --quality flag to the downloader", async () => {
@@ -77,7 +79,7 @@ test(".yt passes the --quality flag to the downloader", async () => {
 
   assert.deepEqual(calls[0], ["https://www.youtube.com/watch?v=abc123", "mp4", "720"]);
   assert.equal(uploaded[0][2], "Sample video (720p).mp4");
-  assert.match(output.messages[0].text, /\(720p\)/);
+  assert.match(output.messages.at(-1).text, /\(720p\)/);
 });
 
 test(".yt accepts the mid-range --480 flag", async () => {
@@ -157,7 +159,7 @@ test(".yt reports Drive upload failures", async () => {
     drive,
   );
 
-  assert.match(output.messages[0].text, /Failed to save the download to Google Drive/);
+  assert.match(output.messages.at(-1).text, /Failed to save the download to Google Drive/);
 });
 
 test(".yt translates extractor rejections into a readable reply", async () => {
@@ -172,7 +174,7 @@ test(".yt translates extractor rejections into a readable reply", async () => {
     drive,
   );
 
-  assert.match(output.messages[0].text, /YouTube rejected the download/);
+  assert.match(output.messages.at(-1).text, /YouTube rejected the download/);
 });
 
 test(".yt removes the temporary file after upload", async () => {

@@ -81,6 +81,7 @@ export async function run(
     }
 
     try {
+      await sendText("Uploading to Google Drive...");
       const driveApi = drive || (await import("../src/services/drive.js"));
       const auth = await driveApi.authorize();
       const quality = parsed.quality === "best" ? "best" : `${parsed.quality}p`;
