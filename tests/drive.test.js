@@ -4,6 +4,7 @@ import { DRIVE } from "../src/config.js";
 import * as checkdrive from "../handler/checkdrive.js";
 import * as list from "../handler/list.js";
 import * as upload from "../handler/upload.js";
+import * as menu from "../handler/menu.js";
 import { filterDriveFiles, formatDriveList } from "../src/services/drive.js";
 
 const originalFolderId = DRIVE.folderId;
@@ -146,4 +147,19 @@ test("Drive file filter handles unsupported filters and empty file names", () =>
   assert.deepEqual(filterDriveFiles(files, "photo"), [files[0]]);
   assert.deepEqual(filterDriveFiles(files, "unknown"), files);
   assert.match(formatDriveList([], null), /Tidak ada file/);
+});
+
+test("menu advertises the Drive commands it actually implements", async () => {
+  let sent = null;
+  const sock = { sendMessage: async (_from, message) => { sent = message; } };
+
+  await menu.run({ sock, from: "chat@s.whatsapp.net" });
+
+  assert.ok(sent.image.length > 0);
+  assert.match(sent.caption, /\.checkdrive/);
+  assert.match(sent.caption, /\.list \[audio\|video\|document\|photo\]/);
+  assert.match(sent.caption, /\.upload \[name\]/);
+  assert.doesNotMatch(sent.caption, /\(na\)/);
+  assert.doesNotMatch(sent.caption, /Not integrated/);
+  assert.doesNotMatch(sent.caption, /\.statusbot/);
 });

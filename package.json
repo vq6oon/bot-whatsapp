@@ -1,12 +1,13 @@
 {
   "name": "lamp1on-bot",
   "version": "2.0.0",
-  "description": "WhatsApp bot for media downloads and text utilities; Google Drive (na)",
+  "description": "WhatsApp bot for media downloads, Google Drive storage, and text utilities",
   "type": "module",
   "private": true,
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
+    "test": "node --test tests/drive.test.js tests/ytdl.test.js",
     "panel": "node index.js"
   },
   "engines": {

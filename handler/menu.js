@@ -17,11 +17,12 @@ Type .rules for usage rules.
 Information
 ├ .menu — Show this menu
 ├ .info — Show bot information
-├ .rules — Show usage rules
-└ .statusbot — Show bot status
+└ .rules — Show usage rules
 
-Google Drive (na)
-└ Not integrated
+Google Drive
+├ .checkdrive — Check Drive folder status
+├ .list [audio|video|document|photo] — List Drive files
+└ .upload [name] — Upload media to Drive
 
 General tools
 ├ .tts <text> — Convert text to speech
