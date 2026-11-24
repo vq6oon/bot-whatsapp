@@ -35,6 +35,8 @@ test("help covers anidl --quality with the format-list behavior", async () => {
   await help.run({ text: ".help anidl", sendText: output.sendText });
   const text = output.messages[0];
   assert.match(text, /--quality/);
+  assert.match(text, /--ep <n\|a-b>/);
+  assert.match(text, /yani neko/);
   assert.match(text, /Available qualities/);
 });
 

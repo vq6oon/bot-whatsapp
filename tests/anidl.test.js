@@ -49,7 +49,7 @@ const episode = {
 test(".anidl defaults to episode 1 and best quality", () => {
   assert.deepEqual(anidl.parseArguments(".anidl naruto"), {
     title: "naruto",
-    episode: 1,
+    episodes: [1],
     quality: "best",
   });
 });
@@ -57,12 +57,31 @@ test(".anidl defaults to episode 1 and best quality", () => {
 test(".anidl parses --ep and a --quality flag", () => {
   assert.deepEqual(anidl.parseArguments(".anidl one piece --ep 3 --720"), {
     title: "one piece",
-    episode: 3,
+    episodes: [3],
     quality: "720",
   });
 });
 
-test(".anidl requires a title", () => {
+test(".anidl parses quoted titles and episode ranges", () => {
+  assert.deepEqual(anidl.parseArguments('.anidl "yani neko" --ep 1-3 --quality 1080'), {
+    title: "yani neko",
+    episodes: [1, 2, 3],
+    quality: "1080",
+  });
+  assert.deepEqual(anidl.parseArguments(".anidl 'yani neko' --ep 2-2"), {
+    title: "yani neko",
+    episodes: [2],
+    quality: "best",
+  });
+});
+
+test(".anidl rejects malformed or oversized episode ranges", () => {
+  for (const ep of ["0-2", "3-1", "1-21", "1-2-3", "abc"]) {
+    assert.ok(anidl.parseArguments(`.anidl naruto --ep ${ep}`).error, ep);
+  }
+});
+
+test(".anidl requires a title", async () => {
   assert.ok(anidl.parseArguments(".anidl").error);
   assert.ok(anidl.parseArguments(".anidl --ep 2").error);
 });
@@ -89,7 +108,7 @@ test(".anidl uploads the episode to Drive and cleans up the temporary file", asy
 
   assert.deepEqual(calls[0], ["naruto", { episode: 2, quality: "480" }]);
   assert.deepEqual(uploaded[0], ["auth", episode.filePath, "Naruto Episode 1 (480p).mp4", episode.mimeType]);
-  assert.equal(output.messages[1].text, "· Uploading to Google Drive...");
+  assert.equal(output.messages[1].text, "· Uploading episode 2 to Google Drive...");
   assert.match(output.messages.at(-1).text, /Naruto Episode 1 \(ep 2, 480p\)/);
   assert.match(output.messages.at(-1).text, /anime-file-1/);
   assert.deepEqual(removed, [episode.filePath]);
@@ -131,6 +150,43 @@ test(".anidl links the existing file when Drive already has that name", async ()
 
   assert.match(output.messages.at(-1).text, /already in Google Drive/);
   assert.match(output.messages.at(-1).text, /old-anime-id/);
+});
+
+test(".anidl downloads and uploads every episode in a range", async () => {
+  const output = capture();
+  const { uploaded, drive } = driveStub();
+  const calls = [];
+  const removed = [];
+
+  await anidl.run(
+    { text: '.anidl "yani neko" --ep 1-3 --quality 1080', sendText: output.sendText },
+    async (title, options) => {
+      calls.push([title, options]);
+      const name = `Yani Neko Episode ${options.episode}.mp4`;
+      return {
+        ...episode,
+        title: `Yani Neko Episode ${options.episode}`,
+        fileName: name,
+        filePath: `/downloads/anidl/${name}`,
+      };
+    },
+    async (filePath) => { removed.push(filePath); },
+    drive,
+  );
+
+  assert.deepEqual(calls, [
+    ["yani neko", { episode: 1, quality: "1080" }],
+    ["yani neko", { episode: 2, quality: "1080" }],
+    ["yani neko", { episode: 3, quality: "1080" }],
+  ]);
+  assert.deepEqual(uploaded.map((args) => args[2]), [
+    "Yani Neko Episode 1 (1080p).mp4",
+    "Yani Neko Episode 2 (1080p).mp4",
+    "Yani Neko Episode 3 (1080p).mp4",
+  ]);
+  assert.match(output.messages[0].text, /Downloading yani neko episodes 1-3/);
+  assert.equal(output.messages.filter((message) => /saved to Google Drive/.test(message.text)).length, 3);
+  assert.equal(removed.length, 3);
 });
 
 test(".anidl sends a download status before the Drive link", async () => {
@@ -274,12 +330,12 @@ test(".getani replaces .anime and both new commands are advertised in the menu",
 test(".anidl accepts the --quality <q> spelling", () => {
   assert.deepEqual(anidl.parseArguments(".anidl one piece --quality 720"), {
     title: "one piece",
-    episode: 1,
+    episodes: [1],
     quality: "720",
   });
   assert.deepEqual(anidl.parseArguments(".anidl one piece --ep 5 --quality best"), {
     title: "one piece",
-    episode: 5,
+    episodes: [5],
     quality: "best",
   });
 });
