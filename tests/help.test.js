@@ -35,7 +35,7 @@ test("help covers anidl --quality with the format-list behavior", async () => {
   await help.run({ text: ".help anidl", sendText: output.sendText });
   const text = output.messages[0];
   assert.match(text, /--quality/);
-  assert.match(text, /Format tersedia/);
+  assert.match(text, /Available qualities/);
 });
 
 test("<command> --help replies instead of running the command", async () => {

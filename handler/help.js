@@ -12,16 +12,16 @@ export const HELP = {
   yt: {
     format: ".yt <url> [--<360|480|720|1080|best>]",
     about: "Download YouTube video to Drive; default best",
-    detail: ".yt <url> [--<360|480|720|1080|best>]\n\nContoh: .yt https://youtu.be/abc123 --720\nTanpa flag = best. Url harus youtube.com / youtu.be.",
+    detail: ".yt <url> [--<360|480|720|1080|best>]\n\nExample: .yt https://youtu.be/abc123 --720\nNo flag = best. URL must be youtube.com / youtu.be.",
   },
-  ytm: { format: ".ytm <url>", about: "Download YouTube audio, send MP3 to chat", detail: ".ytm <url>\n\nUnduh audio dan kirim sebagai pesan audio MP3 ke chat ini. Tidak perlu Drive." },
+  ytm: { format: ".ytm <url>", about: "Download YouTube audio, send MP3 to chat", detail: ".ytm <url>\n\nDownload audio and send it as an MP3 audio message in this chat. No Drive needed." },
   anidl: {
     format: ".anidl <title> [--ep <n>] [--quality <q>]",
     about: "Download an anime episode to Drive via ani-cli",
-    detail: ".anidl <title> [--ep <n>] [--quality <q>]\n\n<q> = best | worst | 360 | 480 | 720 | 1080 (default best). Rename --quality ke bentuk --360 / --720 dst juga diterima.\n\nContoh: .anidl one piece --ep 3 --720\n\nKalau kualitas tidak tersedia bot balas daftar format yang ada, misal: Format tersedia: 1080p",
+    detail: ".anidl <title> [--ep <n>] [--quality <q>]\n\n<q> = best | worst | 360 | 480 | 720 | 1080 (default best). The short form --360 / --720 etc. also works.\n\nExample: .anidl one piece --ep 3 --720\n\nIf the requested quality is unavailable, the bot replies with the available qualities, e.g. Available qualities: 1080p",
   },
-  getani: { format: ".getani <title>", about: "Search anime, sends cover and synopsis", detail: ".getani <title>\n\nContoh: .getani Naruto" },
-  tiktok: { format: ".tiktok <url> [video|hd|audio|photo]", about: "Download TikTok media", detail: ".tiktok <url> [video|hd|audio|photo]\n\nDefault video. hd = kualitas tinggi, audio = suara saja, photo = setiap slide." },
+  getani: { format: ".getani <title>", about: "Search anime, sends cover and synopsis", detail: ".getani <title>\n\nExample: .getani Naruto" },
+  tiktok: { format: ".tiktok <url> [video|hd|audio|photo]", about: "Download TikTok media", detail: ".tiktok <url> [video|hd|audio|photo]\n\nDefault: video. hd = high quality, audio = sound only, photo = each slide." },
   tts: { format: ".tts <text>", about: "Text to speech (gtts, English)" },
   scan: { format: ".scan <url>", about: "Google Safe Browsing lookup" },
   hitung: { format: ".hitung <expression>", about: "Calculator (digits, operators, %, .)" },
@@ -61,7 +61,7 @@ export function helpText(command) {
     (k) => normalized.startsWith(k),
   );
   const entry = HELP[owner];
-  if (!entry) return `❌ Tidak ada bantuan untuk \`${command}\`. Coba \`.help\`.`;
+  if (!entry) return `❌ No help for \`${command}\`. Try \`.help\`.`;
   if (entry.detail) return `📖 *${entry.format}*\n\n${entry.detail}`;
   return `📖 *${entry.format}*\n\n${entry.about}`;
 }
@@ -70,7 +70,7 @@ export function allHelp() {
   const rows = Object.entries(HELP).map(
     ([key, entry]) => `\`${entry.format}\` — ${entry.about}`,
   );
-  return `Lamp1on-Bot commands\n\n${rows.join("\n")}\n\nKetik \`.help <perintah>\` untuk detail satu command.`;
+  return `Lamp1on-Bot commands\n\n${rows.join("\n")}\n\nType \`.help <command>\` for details.`;
 }
 
 export async function run({ text, sendText }) {
