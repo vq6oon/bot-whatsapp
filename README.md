@@ -141,7 +141,8 @@ If `yt-dlp` is not on `PATH`, ani-cli falls back to `ffmpeg`; in that case the f
 ## Google Drive behavior
 
 - `src/services/drive.js` reads `credentials/credentials.json` (installed or web client) and `credentials/token.json`, then builds a Drive v3 client per call. Expired tokens are refreshed by the `googleapis` client.
-- `uploadToDrive` accepts a file path (streamed with `createReadStream`) or a buffer (`Readable.from`). It creates a new file inside `DRIVE_FOLDER_ID`; it does not replace same-name files and does not change sharing permissions.
+- `uploadToDrive` accepts a file path (streamed with `createReadStream`) or a buffer (`Readable.from`). It lists matching names in `DRIVE_FOLDER_ID` first and appends ` (2)`, ` (3)`, … before the extension when a name is taken; it never replaces existing files and does not change sharing permissions.
+- `.anidl` and `.yt` put the requested quality in the uploaded file name (`clip (720p).mp4`) so different qualities stay separate. `.ytm` sends audio in chat and does not use Drive.
 - `listDriveFiles` walks `nextPageToken` in 100-file pages ordered by name; `getDriveQuota` reports usage, limit, and free space in GB.
 - `.list` groups files by extension into audio, video, document, and photo.
 - 401/403/404 responses are translated into OAuth and folder-permission hints.
@@ -153,7 +154,7 @@ npm test
 # same as: node --test tests/drive.test.js tests/yt.test.js tests/anidl.test.js tests/help.test.js
 ```
 
-52 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, file filtering, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anidl.test.js` covers argument parsing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the `.anime` → `.getani` rename. `tests/help.test.js` covers the `.help` listing, aliases, `<command> --help`, and the anidl help entry. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer — Node 12 rejects `--test`.
+56 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, file filtering, Drive name deduplication, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anidl.test.js` covers argument parsing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the `.anime` → `.getani` rename. `tests/help.test.js` covers the `.help` listing, aliases, `<command> --help`, and the anidl help entry. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer — Node 12 rejects `--test`.
 
 ## Notes
 

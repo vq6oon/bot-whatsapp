@@ -58,14 +58,14 @@ test(".yt uploads the best available video to Drive by default", async () => {
   );
 
   assert.deepEqual(calls[0], ["https://youtu.be/abc123", "mp4", "best"]);
-  assert.deepEqual(uploaded[0], ["auth", video.filePath, video.fileName, video.mimeType]);
+  assert.deepEqual(uploaded[0], ["auth", video.filePath, "Sample video (best).mp4", video.mimeType]);
   assert.match(output.messages[0].text, /Sample video \(best\)/);
   assert.match(output.messages[0].text, /drive-file-1/);
 });
 
 test(".yt passes the --quality flag to the downloader", async () => {
   const output = capture();
-  const { drive } = driveStub();
+  const { uploaded, drive } = driveStub();
   const calls = [];
 
   await yt.run(
@@ -76,6 +76,7 @@ test(".yt passes the --quality flag to the downloader", async () => {
   );
 
   assert.deepEqual(calls[0], ["https://www.youtube.com/watch?v=abc123", "mp4", "720"]);
+  assert.equal(uploaded[0][2], "Sample video (720p).mp4");
   assert.match(output.messages[0].text, /\(720p\)/);
 });
 

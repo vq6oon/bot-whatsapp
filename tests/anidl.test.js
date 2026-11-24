@@ -88,10 +88,25 @@ test(".anidl uploads the episode to Drive and cleans up the temporary file", asy
   );
 
   assert.deepEqual(calls[0], ["naruto", { episode: 2, quality: "480" }]);
-  assert.deepEqual(uploaded[0], ["auth", episode.filePath, episode.fileName, episode.mimeType]);
+  assert.deepEqual(uploaded[0], ["auth", episode.filePath, "Naruto Episode 1 (480p).mp4", episode.mimeType]);
   assert.match(output.messages[1].text, /Naruto Episode 1 \(ep 2, 480p\)/);
   assert.match(output.messages[1].text, /anime-file-1/);
   assert.deepEqual(removed, [episode.filePath]);
+});
+
+test(".anidl includes the best quality in the uploaded file name by default", async () => {
+  const output = capture();
+  const { uploaded, drive } = driveStub();
+
+  await anidl.run(
+    { text: ".anidl naruto", sendText: output.sendText },
+    async () => episode,
+    async () => {},
+    drive,
+  );
+
+  assert.equal(uploaded[0][2], "Naruto Episode 1 (best).mp4");
+  assert.match(output.messages.at(-1).text, /\(ep 1, best\)/);
 });
 
 test(".anidl sends a download status before the Drive link", async () => {

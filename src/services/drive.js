@@ -2,6 +2,7 @@ import fs from "fs";
 import { Readable } from "node:stream";
 import { google } from "googleapis";
 import { DRIVE } from "../config.js";
+import { splitFileName, uniqueDriveFileName } from "../utils/filenames.js";
 
 export async function authorize() {
   if (!fs.existsSync(DRIVE.credentialsPath)) {
@@ -48,12 +49,35 @@ export async function getDriveFolderInfo(auth) {
   return response.data;
 }
 
-export async function uploadToDrive(auth, buffer, fileName, mimeType) {
+function escapeDriveValue(value) {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+async function listMatchingNames(drive, folderId, base) {
+  const names = [];
+  let pageToken;
+  do {
+    const response = await drive.files.list({
+      q: `'${folderId}' in parents and name contains '${escapeDriveValue(base)}' and trashed = false`,
+      pageSize: 1000,
+      pageToken,
+      fields: "nextPageToken, files(name)",
+    });
+    names.push(...(response.data.files || []).map((file) => file.name));
+    pageToken = response.data.nextPageToken;
+  } while (pageToken);
+  return names;
+}
+
+export async function uploadToDrive(auth, buffer, fileName, mimeType, driveClient = null) {
   const folderId = requireFolderId();
-  const drive = google.drive({ version: "v3", auth });
+  const drive = driveClient || google.drive({ version: "v3", auth });
+  const { base } = splitFileName(fileName);
+  const existingNames = await listMatchingNames(drive, folderId, base);
+  const name = uniqueDriveFileName(fileName, existingNames);
   const body = typeof buffer === "string" ? fs.createReadStream(buffer) : Readable.from(buffer);
   const response = await drive.files.create({
-    requestBody: { name: fileName, parents: [folderId] },
+    requestBody: { name, parents: [folderId] },
     media: { mimeType, body },
     fields: "id, name, mimeType, webViewLink",
   });

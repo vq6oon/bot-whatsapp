@@ -1,4 +1,5 @@
 import { DRIVE } from "../src/config.js";
+import { withQualitySuffix } from "../src/utils/filenames.js";
 import {
   QUALITY_FLAGS,
   YOUTUBE_FORMAT_HINT,
@@ -51,17 +52,18 @@ export async function run(
     }
 
     try {
+      const quality = parsed.quality === "best" ? "best" : `${parsed.quality}p`;
+      const uploadName = withQualitySuffix(media.fileName, quality);
       let uploaded;
       if (drive) {
         const auth = await drive.authorize();
-        uploaded = await drive.uploadToDrive(auth, media.filePath || media.buffer, media.fileName, media.mimeType);
+        uploaded = await drive.uploadToDrive(auth, media.filePath || media.buffer, uploadName, media.mimeType);
       } else {
         const { authorize, uploadToDrive } = await import("../src/services/drive.js");
         const auth = await authorize();
-        uploaded = await uploadToDrive(auth, media.filePath, media.fileName, media.mimeType);
+        uploaded = await uploadToDrive(auth, media.filePath, uploadName, media.mimeType);
       }
       const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
-      const quality = parsed.quality === "best" ? "best" : `${parsed.quality}p`;
       return await sendText(`✓ ${media.title} (${quality}) saved to Google Drive\n→ ${link}`);
     } catch (error) {
       console.error("yt Drive upload:", error?.message || error);

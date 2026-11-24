@@ -1,4 +1,5 @@
 import { DRIVE } from "../src/config.js";
+import { withQualitySuffix } from "../src/utils/filenames.js";
 import {
   ANIDL_FORMAT_HINT,
   ANIME_QUALITY_PATTERN,
@@ -82,9 +83,10 @@ export async function run(
     try {
       const driveApi = drive || (await import("../src/services/drive.js"));
       const auth = await driveApi.authorize();
-      const uploaded = await driveApi.uploadToDrive(auth, media.filePath, media.fileName, media.mimeType);
-      const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
       const quality = parsed.quality === "best" ? "best" : `${parsed.quality}p`;
+      const uploadName = withQualitySuffix(media.fileName, quality);
+      const uploaded = await driveApi.uploadToDrive(auth, media.filePath, uploadName, media.mimeType);
+      const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
       return await sendText(
         `✓ ${media.title} (ep ${parsed.episode}, ${quality}) saved to Google Drive\n→ ${link}`,
       );
