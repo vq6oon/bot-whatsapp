@@ -4,6 +4,8 @@ import { DRIVE } from "../src/config.js";
 import * as yt from "../handler/yt.js";
 import * as ytm from "../handler/ytm.js";
 import * as menu from "../handler/menu.js";
+import { probeVideoQuality } from "../src/services/youtube.js";
+import { qualityLabelFromSize } from "../src/utils/filenames.js";
 
 function capture() {
   const messages = [];
@@ -59,10 +61,47 @@ test(".yt uploads the best available video to Drive by default", async () => {
 
   assert.deepEqual(calls[0], ["https://youtu.be/abc123", "mp4", "best"]);
   assert.deepEqual(uploaded[0], ["auth", video.filePath, "Sample video (best).mp4", video.mimeType]);
-  assert.equal(output.messages[0].text, "Downloading video...");
-  assert.equal(output.messages[1].text, "Uploading to Google Drive...");
+  assert.equal(output.messages[0].text, "· Downloading video...");
+  assert.equal(output.messages[1].text, "· Uploading to Google Drive...");
   assert.match(output.messages.at(-1).text, /Sample video \(best\)/);
   assert.match(output.messages.at(-1).text, /drive-file-1/);
+});
+
+test("qualityLabelFromSize maps the short edge to a known label", () => {
+  assert.equal(qualityLabelFromSize(360), "360");
+  assert.equal(qualityLabelFromSize(480), "480");
+  assert.equal(qualityLabelFromSize(720), "720");
+  assert.equal(qualityLabelFromSize(1080), "1080");
+  assert.equal(qualityLabelFromSize(1920), "1080");
+  assert.equal(qualityLabelFromSize(0), null);
+});
+
+test("probeVideoQuality reads the real resolution with ffprobe", async () => {
+  const calls = [];
+  const runner = async (binary, args) => {
+    calls.push([binary, args]);
+    return { stdout: "1920,360\n" };
+  };
+
+  assert.equal(await probeVideoQuality("/downloads/clip.mp4", runner), "360");
+  assert.equal(calls[0][0], "ffprobe");
+  assert.ok(calls[0][1].includes("-show_entries"));
+});
+
+test(".yt labels an explicit quality with the downloaded resolution when it is lower", async () => {
+  const output = capture();
+  const { uploaded, drive } = driveStub();
+
+  await yt.run(
+    { text: ".yt https://youtu.be/abc123 --1080", sendText: output.sendText },
+    async () => ({ ...video, quality: "360" }),
+    async () => {},
+    drive,
+  );
+
+  assert.equal(uploaded[0][2], "Sample video (360p).mp4");
+  assert.match(output.messages.at(-1).text, /Sample video \(360p\)/);
+  assert.doesNotMatch(output.messages.at(-1).text, /1080p/);
 });
 
 test(".yt passes the --quality flag to the downloader", async () => {
@@ -204,9 +243,12 @@ test(".ytm downloads audio as MP3 and sends it to the chat", async () => {
   );
 
   assert.deepEqual(calls[0], ["https://music.youtube.com/watch?v=abc123", "mp3", "best"]);
-  assert.equal(output.messages.length, 1);
-  assert.equal(output.messages[0].to, "chat@s.whatsapp.net");
-  const payload = output.messages[0].message;
+  assert.equal(output.messages[0].text, "· Downloading audio...");
+  assert.equal(output.messages[1].text, "· Sending audio...");
+  const sent = output.messages.find((message) => message.message);
+  assert.ok(sent);
+  assert.equal(sent.to, "chat@s.whatsapp.net");
+  const payload = sent.message;
   assert.equal(payload.mimetype, "audio/mpeg");
   assert.equal(payload.fileName, "Sample track.mp3");
   assert.equal(payload.ptt, false);
@@ -236,8 +278,7 @@ test(".ytm reports download failures without sending audio", async () => {
     async () => { throw rejected; },
   );
 
-  assert.equal(output.messages.length, 1);
-  assert.match(output.messages[0].text, /YouTube rejected the download/);
+  assert.match(output.messages.at(-1).text, /YouTube rejected the download/);
 });
 
 test(".ytm reports an empty download instead of sending nothing", async () => {
@@ -248,7 +289,7 @@ test(".ytm reports an empty download instead of sending nothing", async () => {
     async () => ({ ...audio, buffer: Buffer.alloc(0) }),
   );
 
-  assert.match(output.messages[0].text, /Could not download the audio/);
+  assert.match(output.messages.at(-1).text, /Could not download the audio/);
 });
 
 test(".yt and .ytm match only their own command prefix", () => {

@@ -10,6 +10,8 @@ export async function run({ text, sendText }) {
   const url = text.slice(10).trim();
   if (!/^https?:\/\//.test(url)) return sendText("✗ Invalid URL format!");
 
+  await sendText("· Shortening URL...");
+
   try {
     const response = await fetch(
       `https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`,

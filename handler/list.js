@@ -18,6 +18,8 @@ export async function run({ text, sendText }, drive = driveService) {
     return sendText("Format: .list [audio|video|document|photo]");
   }
 
+  await sendText("· Reading Google Drive...");
+
   try {
     const auth = await drive.authorize();
     const files = await drive.listDriveFiles(auth);

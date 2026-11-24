@@ -41,7 +41,7 @@ export async function run(
   }
 
   try {
-    await sendText("Downloading media...");
+    await sendText("· Downloading media...");
     const buffer = quotedMedia
       ? await mediaService.downloadQuotedBuffer(quoted, quotedContext)
       : await mediaService.downloadOwnBuffer(msg);
@@ -49,7 +49,7 @@ export async function run(
 
     const mimeType = media.mimetype || "application/octet-stream";
     const fileName = customName || inferFileName(media, mimeType, Date.now());
-    await sendText("Uploading to Google Drive...");
+    await sendText("· Uploading to Google Drive...");
     const auth = await drive.authorize();
     const uploaded = await drive.uploadToDrive(auth, buffer, fileName, mimeType);
     const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;

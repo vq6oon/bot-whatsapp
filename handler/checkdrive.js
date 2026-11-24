@@ -12,6 +12,8 @@ export async function run({ sendText }, drive = driveService) {
     return sendText("! Set DRIVE_FOLDER_ID in .env to your Google Drive folder ID.");
   }
 
+  await sendText("· Checking Google Drive...");
+
   try {
     const auth = await drive.authorize();
     const [folder, files] = await Promise.all([

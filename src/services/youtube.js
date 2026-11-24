@@ -4,6 +4,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
 import { PATHS } from "../config.js";
+import { qualityLabelFromSize } from "../utils/filenames.js";
 
 const execFileAsync = promisify(execFile);
 export const MAX_DRIVE_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -33,6 +34,23 @@ export function parseYoutubeMetadata(output) {
     throw new Error("YouTube returned invalid metadata.");
   }
   return { title };
+}
+
+export async function probeVideoQuality(filePath, runner = execFileAsync) {
+  try {
+    const { stdout } = await runner("ffprobe", [
+      "-v", "error",
+      "-select_streams", "v:0",
+      "-show_entries", "stream=width,height",
+      "-of", "csv=p=0",
+      filePath,
+    ], { maxBuffer: 64 * 1024 });
+    const [width, height] = String(stdout).trim().split(/[,\s]+/).map(Number);
+    if (!width || !height) return null;
+    return qualityLabelFromSize(Math.min(width, height));
+  } catch {
+    return null;
+  }
 }
 
 export async function downloadYoutube(url, mode = "mp4", requestedQuality = "best") {
@@ -93,7 +111,9 @@ export async function downloadYoutube(url, mode = "mp4", requestedQuality = "bes
       ? "audio/mpeg"
       : extension === "mp4" ? "video/mp4" : "video/webm";
 
-    return { title, fileName: `${title}.${extension}`, mimeType, size: stat.size, filePath };
+    const quality = mode === "mp3" ? null : await probeVideoQuality(filePath);
+
+    return { title, fileName: `${title}.${extension}`, mimeType, size: stat.size, filePath, quality };
   } catch (error) {
     const partialFiles = await fs.readdir(PATHS.downloads).catch(() => []);
     await Promise.all(partialFiles

@@ -4,6 +4,17 @@ export function splitFileName(fileName) {
   return { base: fileName.slice(0, dot), ext: fileName.slice(dot) };
 }
 
+
+export function qualityLabelFromSize(size) {
+  const value = Number(size);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  if (value >= 1080) return "1080";
+  if (value >= 720) return "720";
+  if (value >= 480) return "480";
+  if (value >= 360) return "360";
+  return String(value);
+}
+
 export function withQualitySuffix(fileName, quality) {
   if (!quality) return fileName;
   const { base, ext } = splitFileName(fileName);

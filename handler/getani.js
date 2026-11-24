@@ -10,6 +10,8 @@ export async function run({ text, sock, from, sendText }) {
   const query = text.slice(8).trim();
   if (!query) return sendText("· Example: .getani Naruto");
 
+  await sendText("· Searching anime...");
+
   try {
     const anime = await searchAnime(query);
     if (!anime) return sendText("✗ Anime not found.");

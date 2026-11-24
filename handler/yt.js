@@ -39,7 +39,7 @@ export async function run(
     return sendText("✗ Google Drive folder is not configured. Set DRIVE_FOLDER_ID in .env.");
   }
 
-  await sendText("Downloading video...");
+  await sendText("· Downloading video...");
 
   let media;
   try {
@@ -54,8 +54,9 @@ export async function run(
     }
 
     try {
-      await sendText("Uploading to Google Drive...");
-      const quality = parsed.quality === "best" ? "best" : `${parsed.quality}p`;
+      await sendText("· Uploading to Google Drive...");
+      const requestedQuality = parsed.quality === "best" ? "best" : `${parsed.quality}p`;
+      const quality = media.quality ? `${media.quality}p` : requestedQuality;
       const uploadName = withQualitySuffix(media.fileName, quality);
       let uploaded;
       if (drive) {

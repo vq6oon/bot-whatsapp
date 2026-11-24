@@ -32,7 +32,9 @@ function readCpuModel() {
   return "Unknown";
 }
 
-export async function run({ sock, from }) {
+export async function run({ sock, from, sendText }) {
+  await sendText("· Reading device info...");
+
   const totalMemory = os.totalmem();
   const freeMemory = os.freemem();
   const usedMemory = totalMemory - freeMemory;

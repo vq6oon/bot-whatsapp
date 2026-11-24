@@ -89,7 +89,7 @@ test(".anidl uploads the episode to Drive and cleans up the temporary file", asy
 
   assert.deepEqual(calls[0], ["naruto", { episode: 2, quality: "480" }]);
   assert.deepEqual(uploaded[0], ["auth", episode.filePath, "Naruto Episode 1 (480p).mp4", episode.mimeType]);
-  assert.equal(output.messages[1].text, "Uploading to Google Drive...");
+  assert.equal(output.messages[1].text, "· Uploading to Google Drive...");
   assert.match(output.messages.at(-1).text, /Naruto Episode 1 \(ep 2, 480p\)/);
   assert.match(output.messages.at(-1).text, /anime-file-1/);
   assert.deepEqual(removed, [episode.filePath]);
@@ -125,7 +125,7 @@ test(".anidl sends a download status before the Drive link", async () => {
     drive,
   );
 
-  assert.match(events[0], /^text:Downloading naruto episode 2/);
+  assert.match(events[0], /^text:· Downloading naruto episode 2/);
   assert.equal(events[1], "download");
   assert.match(output.messages.at(-1).text, /saved to Google Drive/);
 });

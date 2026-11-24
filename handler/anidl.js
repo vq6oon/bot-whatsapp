@@ -63,7 +63,7 @@ export async function run(
   if (!drive && !DRIVE.folderId) {
     return sendText("✗ Google Drive folder is not configured. Set DRIVE_FOLDER_ID in .env.");
   }
-  await sendText(`Downloading ${parsed.title} episode ${parsed.episode}...`);
+  await sendText(`· Downloading ${parsed.title} episode ${parsed.episode}...`);
 
   let media;
   try {
@@ -81,7 +81,7 @@ export async function run(
     }
 
     try {
-      await sendText("Uploading to Google Drive...");
+      await sendText("· Uploading to Google Drive...");
       const driveApi = drive || (await import("../src/services/drive.js"));
       const auth = await driveApi.authorize();
       const quality = parsed.quality === "best" ? "best" : `${parsed.quality}p`;

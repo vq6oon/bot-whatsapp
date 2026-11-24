@@ -15,6 +15,8 @@ export async function run({ text, sock, from, sendText }) {
     return sendText("Example: .tiktok <url> [video|hd|audio|photo]");
   }
 
+  await sendText("· Fetching TikTok media...");
+
   try {
     const response = await fetch(
       `https://tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`,

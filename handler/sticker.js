@@ -8,6 +8,8 @@ export function match(ctx) {
 }
 
 export async function run({ sock, msg, from, quoted, quotedContext, sendText }) {
+  await sendText("· Creating sticker...");
+
   let buffer = null;
 
   if (quoted?.imageMessage) {

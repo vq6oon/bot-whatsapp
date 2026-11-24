@@ -12,6 +12,8 @@ export async function run({ text, sock, from, sendText }) {
   const input = text.slice(5).trim();
   if (!input) return sendText("✗ Enter text to convert to speech.");
 
+  await sendText("· Creating speech...");
+
   const speech = new gTTS(input, "en");
   const outputPath = `${PATHS.downloads}/tts_${Date.now()}.mp3`;
 

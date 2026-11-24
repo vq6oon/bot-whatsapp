@@ -13,7 +13,7 @@ export async function run({ text, sendText }) {
   }
 
   try {
-    await sendText("Scanning URL...");
+    await sendText("· Scanning URL...");
 
     const response = await fetch(
       `https://safebrowsing.google.com/safebrowsing/diagnostic?output=json&site=${encodeURIComponent(url)}`,

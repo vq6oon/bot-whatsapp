@@ -33,8 +33,9 @@ test("checkdrive reports configured folder and file count", async () => {
 
   await checkdrive.run(output, drive);
 
-  assert.match(output.messages[0], /Kamui-Bot/);
-  assert.match(output.messages[0], /2/);
+  assert.equal(output.messages[0], "· Checking Google Drive...");
+  assert.match(output.messages.at(-1), /Kamui-Bot/);
+  assert.match(output.messages.at(-1), /2/);
 });
 
 test("list shows only files matching requested type", async () => {
@@ -51,9 +52,10 @@ test("list shows only files matching requested type", async () => {
 
   await list.run({ ...output, text: ".list photo" }, drive);
 
-  assert.match(output.messages[0], /cover\.png/);
-  assert.doesNotMatch(output.messages[0], /clip\.mp4/);
-  assert.match(output.messages[0], /drive\.google\.com/);
+  assert.equal(output.messages[0], "· Reading Google Drive...");
+  assert.match(output.messages.at(-1), /cover\.png/);
+  assert.doesNotMatch(output.messages.at(-1), /clip\.mp4/);
+  assert.match(output.messages.at(-1), /drive\.google\.com/);
 });
 
 test("list rejects unsupported type filters", async () => {
@@ -102,8 +104,8 @@ test("upload stores quoted WhatsApp media in Drive without sharing it publicly",
   assert.equal(uploaded[0][1].toString(), "test pdf");
   assert.equal(uploaded[0][2], "report.pdf");
   assert.equal(uploaded[0][3], "application/pdf");
-  assert.equal(output.messages[0], "Downloading media...");
-  assert.equal(output.messages[1], "Uploading to Google Drive...");
+  assert.equal(output.messages[0], "· Downloading media...");
+  assert.equal(output.messages[1], "· Uploading to Google Drive...");
   assert.match(output.messages.at(-1), /report\.pdf/);
   assert.match(output.messages.at(-1), /drive\.google\.com/);
 });

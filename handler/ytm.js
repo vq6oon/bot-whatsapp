@@ -23,6 +23,8 @@ export async function run(
   const [url] = args;
   if (!isYoutubeUrl(url)) return sendText(`Send a YouTube link. ${FORMAT_HINT}`);
 
+  await sendText("· Downloading audio...");
+
   let media;
   try {
     try {
@@ -36,6 +38,7 @@ export async function run(
     }
 
     try {
+      await sendText("· Sending audio...");
       return await sock.sendMessage(from, {
         audio: media.buffer,
         mimetype: media.mimeType || "audio/mpeg",
