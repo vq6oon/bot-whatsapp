@@ -1,6 +1,6 @@
 # Lamp1on-Bot
 
-WhatsApp bot built on Baileys v6 and Node.js. It downloads media (YouTube, TikTok), stores large files in Google Drive, and bundles small text utilities. Version 2.0.0, ESM (`"type": "module"`).
+WhatsApp bot built on Baileys v6 and Node.js. It downloads media (YouTube, TikTok, anime via ani-cli), stores large files in Google Drive, and bundles small text utilities. Version 2.0.0, ESM (`"type": "module"`).
 
 ## Requirements
 
@@ -8,6 +8,8 @@ WhatsApp bot built on Baileys v6 and Node.js. It downloads media (YouTube, TikTo
 - `ffmpeg` on `PATH` — yt-dlp uses it to extract MP3 and mux MP4
 - `python3.11` on `PATH` — `youtube-dl-exec` is invoked as `python3.11 <youtube-dl-binary>`; override with `YOUTUBE_DL_PYTHON`
 - Google OAuth client and token for the Drive commands (see Drive setup)
+- `ani-cli` on `PATH` for `.anidl`, plus a `yt-dlp` executable on `PATH` that runs under Python 3.11 (ani-cli prefers it over the system `ffmpeg`)
+- `tools/ani-pick-first` installed as `/usr/local/bin/ani-pick-first` so ani-cli can pick the first result without an interactive menu
 
 ## Install and run
 
@@ -24,7 +26,7 @@ Runtime files, all under `data/` and ignored by Git: `data/auth_info/` (session)
 
 ## Environment
 
-Three variables are read by the code:
+Six variables are read by the code:
 
 ```dotenv
 # Bot phone number for pairing-code login; empty means QR login
@@ -35,9 +37,14 @@ DRIVE_FOLDER_ID=
 
 # Python interpreter used to run the bundled yt-dlp binary (default: python3.11)
 YOUTUBE_DL_PYTHON=
+
+# ani-cli executable, menu shim, and download timeout in ms
+ANI_CLI_BIN=ani-cli
+ANI_CLI_MENU=/usr/local/bin/ani-pick-first
+ANI_DL_TIMEOUT_MS=900000
 ```
 
-`DRIVE_FOLDER_ID` is required by every Drive command. When it is empty, `.checkdrive`, `.list`, `.upload`, and `.yt` reply with a configuration warning instead of calling the API. `.ytm` needs no folder because it returns the MP3 to the chat.
+`DRIVE_FOLDER_ID` is required by every Drive command. When it is empty, `.checkdrive`, `.list`, `.upload`, and `.yt` reply with a configuration warning instead of calling the API. `.ytm` needs no folder because it returns the MP3 to the chat. `.anidl` needs it because the downloaded episode is streamed to Drive.
 
 ## Google Drive setup
 
@@ -65,7 +72,8 @@ One handler runs per message: `src/router.js` walks `HANDLERS` in order and exec
 | `.tts <text>` | Google TTS voice note (`gtts`, English) |
 | `.scan <url>` | Google Safe Browsing diagnostic lookup |
 | `.hitung <expression>` | Calculator; input is restricted to digits, operators, parentheses, space, `%`, `.` |
-| `.anime <title>` | Anime search via `api.tenrai.org`, sends the cover image when available |
+| `.getani <title>` | Anime search via `api.tenrai.org`, sends the cover image when available |
+| `.anidl <title> [--ep <n>] [--<360\|480\|720\|1080\|best>]` | Download an anime episode with ani-cli and stream it to Drive; episode defaults to 1, quality to `best` |
 | `.shorturl <url>` | TinyURL shortlink |
 | `.deviceinfo` | Host OS, kernel, CPU, cores, RAM, uptime |
 | `.morse <text>` / `.textmorse <code>` | Morse encode/decode |
@@ -85,15 +93,15 @@ src/config.js           bot identity, PATHS, DRIVE settings
 src/logger.js           console plus data/logs/<date>.log logging
 src/message-filter.js   skips own messages and @channel traffic
 src/reconnect.js        2 second reconnect, stops on loggedOut
-src/services/           drive.js, youtube.js, media.js (Baileys media download), anime.js
+src/services/           drive.js, youtube.js, media.js (Baileys media download), anime.js (search + ani-cli runner)
 src/utils/morse.js      Morse tables
 src/data/animals.js     guessing-game answers
-handler/                one module per command (yt.js and ytm.js are separate), each exporting name, match, run
+handler/                one module per command (yt.js, ytm.js, getani.js, anidl.js are separate), each exporting name, match, run
 tests/                  node:test suites, no WhatsApp session needed
 tools/panel.js          optional browser editor for bot.js, port 3000
 ```
 
-A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`. `dispatch()` returns the name of the handler that matched, or `null`. Every handler receives `sock`, `msg`, `from`, `sender`, `text`, `quoted`, `quotedContext`, `sendText`; the Drive and YouTube handlers also take an injected service object so tests can stub the API.
+A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`. `dispatch()` returns the name of the handler that matched, or `null`. Every handler receives `sock`, `msg`, `from`, `sender`, `text`, `quoted`, `quotedContext`, `sendText`; the Drive, YouTube, and anime-download handlers also take an injected service object so tests can stub the API.
 
 ## YouTube commands
 
@@ -102,6 +110,24 @@ A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`
 `.ytm` takes only a URL and always produces an MP3: `downloadYoutube(url, "mp3", "best")`, then `sock.sendMessage` with `audio`, `mimetype: audio/mpeg`, `fileName`, and `ptt: false`. The audio message comes back to the chat, not Drive, so no folder is needed.
 
 Both handlers delete the temporary download in a `finally` block, and both turn yt-dlp exit code 1 into "YouTube menolak unduhan atau format tidak tersedia" instead of leaking stderr.
+
+## Anime commands
+
+`.getani <title>` is the renamed anime search command. `.anime` is gone.
+
+`.anidl <title> [--ep <n>] [--<360|480|720|1080|best>]` runs ani-cli in non-interactive download mode: `-d -S 1 -e <n> -q <quality> <title>`. `-S 1` takes the first search result, `--ep` chooses the episode (default `1`), and a `--` quality flag chooses the stream (default `best`). A bare `720`, an unknown flag, `--ep` without a number, and a title with no words are rejected before running ani-cli.
+
+The downloader sets `ANI_CLI_PLAYER=/bin/true` (ani-cli checks for a player even in download mode), `ANI_CLI_MENU=/usr/local/bin/ani-pick-first` (picks the first row instead of opening fzf), and `ANI_CLI_DOWNLOAD_DIR=data/downloads/anidl`. Files are written under `data/downloads/anidl`; only a fresh `.mp4`, `.mkv`, `.webm`, or `.m4v` newer than the invocation is used. The newest match is streamed to `DRIVE_FOLDER_ID`, the reply carries the Drive link, and both the video and its `.vtt` subtitle are removed afterwards. A missing binary becomes "ani-cli belum terpasang di server", and a killed/timeout run becomes "Unduhan anime timeout".
+
+Install the host-side pieces once:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/pystardust/ani-cli/master/ani-cli -o /usr/local/bin/ani-cli
+chmod +x /usr/local/bin/ani-cli
+install -m 755 tools/ani-pick-first /usr/local/bin/ani-pick-first
+```
+
+If `yt-dlp` is not on `PATH`, ani-cli falls back to `ffmpeg`; in that case the ffmpeg build must understand `-extension_picky` or the download fails. `ANI_CLI_BIN`, `ANI_CLI_MENU`, and `ANI_DL_TIMEOUT_MS` override the defaults.
 
 ## Google Drive behavior
 
@@ -115,10 +141,10 @@ Both handlers delete the temporary download in a `finally` block, and both turn 
 
 ```bash
 npm test
-# same as: node --test tests/drive.test.js tests/yt.test.js
+# same as: node --test tests/drive.test.js tests/yt.test.js tests/anidl.test.js
 ```
 
-23 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, file filtering, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. No network, no WhatsApp session, and no real Drive call: the Drive client is injected. Use Node 20 or newer — Node 12 rejects `--test`.
+35 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, file filtering, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anidl.test.js` covers argument parsing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, and the `.anime` → `.getani` rename. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer — Node 12 rejects `--test`.
 
 ## Notes
 
