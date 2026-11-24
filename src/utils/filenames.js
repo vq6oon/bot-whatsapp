@@ -1,4 +1,4 @@
-function splitFileName(fileName) {
+export function splitFileName(fileName) {
   const dot = fileName.lastIndexOf(".");
   if (dot <= 0) return { base: fileName, ext: "" };
   return { base: fileName.slice(0, dot), ext: fileName.slice(dot) };
