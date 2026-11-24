@@ -120,8 +120,8 @@ test(".yt rejects non-YouTube hosts and lookalike domains", async () => {
   await yt.run({ text: ".yt https://example.com/video --720", sendText: output.sendText }, download);
   await yt.run({ text: ".yt https://youtube.com.evil.example/watch?v=abc --720", sendText: output.sendText }, download);
 
-  assert.match(output.messages[0].text, /Kirim link YouTube/);
-  assert.match(output.messages[1].text, /Kirim link YouTube/);
+  assert.match(output.messages[0].text, /Send a YouTube link/);
+  assert.match(output.messages[1].text, /Send a YouTube link/);
 });
 
 test(".yt refuses to download when no Drive folder is configured", async () => {
@@ -139,7 +139,7 @@ test(".yt refuses to download when no Drive folder is configured", async () => {
   }
 
   assert.equal(downloads, 0);
-  assert.match(output.messages[0].text, /belum dikonfigurasi/);
+  assert.match(output.messages[0].text, /not configured/);
 });
 
 test(".yt reports Drive upload failures", async () => {
@@ -156,7 +156,7 @@ test(".yt reports Drive upload failures", async () => {
     drive,
   );
 
-  assert.match(output.messages[0].text, /Gagal menyimpan hasil unduhan ke Google Drive/);
+  assert.match(output.messages[0].text, /Failed to save the download to Google Drive/);
 });
 
 test(".yt translates extractor rejections into a readable reply", async () => {
@@ -171,7 +171,7 @@ test(".yt translates extractor rejections into a readable reply", async () => {
     drive,
   );
 
-  assert.match(output.messages[0].text, /YouTube menolak unduhan/);
+  assert.match(output.messages[0].text, /YouTube rejected the download/);
 });
 
 test(".yt removes the temporary file after upload", async () => {
@@ -221,7 +221,7 @@ test(".ytm rejects extra arguments and non-YouTube links", async () => {
 
   assert.equal(downloads, 0);
   assert.match(output.messages[0].text, /Format: \.ytm <url>/);
-  assert.match(output.messages[1].text, /Kirim link YouTube/);
+  assert.match(output.messages[1].text, /Send a YouTube link/);
 });
 
 test(".ytm reports download failures without sending audio", async () => {
@@ -234,7 +234,7 @@ test(".ytm reports download failures without sending audio", async () => {
   );
 
   assert.equal(output.messages.length, 1);
-  assert.match(output.messages[0].text, /YouTube menolak unduhan/);
+  assert.match(output.messages[0].text, /YouTube rejected the download/);
 });
 
 test(".ytm reports an empty download instead of sending nothing", async () => {
@@ -245,7 +245,7 @@ test(".ytm reports an empty download instead of sending nothing", async () => {
     async () => ({ ...audio, buffer: Buffer.alloc(0) }),
   );
 
-  assert.match(output.messages[0].text, /Audio tidak bisa diunduh/);
+  assert.match(output.messages[0].text, /Could not download the audio/);
 });
 
 test(".yt and .ytm match only their own command prefix", () => {

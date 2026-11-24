@@ -21,7 +21,7 @@ export async function run(
   const args = text.trim().split(/\s+/).slice(1);
   if (args.length !== 1) return sendText(FORMAT_HINT);
   const [url] = args;
-  if (!isYoutubeUrl(url)) return sendText(`Kirim link YouTube. ${FORMAT_HINT}`);
+  if (!isYoutubeUrl(url)) return sendText(`Send a YouTube link. ${FORMAT_HINT}`);
 
   let media;
   try {
@@ -32,7 +32,7 @@ export async function run(
       return sendText(youtubeDownloadError(error));
     }
     if (!media?.buffer?.length) {
-      return sendText("❌ Audio tidak bisa diunduh dari YouTube.");
+      return sendText("❌ Could not download the audio from YouTube.");
     }
 
     try {
@@ -44,7 +44,7 @@ export async function run(
       });
     } catch (error) {
       console.error("ytm send:", error?.message || error);
-      return sendText("❌ Gagal mengirim audio ke WhatsApp.");
+      return sendText("❌ Failed to send the audio to WhatsApp.");
     }
   } finally {
     if (media?.filePath) await removeFile(media.filePath).catch(() => {});

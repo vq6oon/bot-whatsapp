@@ -20,7 +20,7 @@ export function parseArguments(text) {
   const [, ...args] = text.trim().split(/\s+/);
   if (!args.length || args.length > 2) return { error: FORMAT_HINT };
   const [url, flag] = args;
-  if (!isYoutubeUrl(url)) return { error: `Kirim link YouTube. ${FORMAT_HINT}` };
+  if (!isYoutubeUrl(url)) return { error: `Send a YouTube link. ${FORMAT_HINT}` };
   if (flag === undefined) return { url, quality: "best" };
   if (!flag.startsWith("--") || !QUALITY_FLAGS.has(flag.slice(2))) return { error: FORMAT_HINT };
   return { url, quality: flag.slice(2) };
@@ -35,7 +35,7 @@ export async function run(
   const parsed = parseArguments(text);
   if (parsed.error) return sendText(parsed.error);
   if (!drive && !DRIVE.folderId) {
-    return sendText("❌ Folder Google Drive belum dikonfigurasi.");
+    return sendText("❌ Google Drive folder is not configured. Set DRIVE_FOLDER_ID in .env.");
   }
 
   let media;
@@ -47,7 +47,7 @@ export async function run(
       return sendText(youtubeDownloadError(error));
     }
     if (!media || (media.filePath ? !media.size : !media.buffer?.length)) {
-      return sendText("❌ Video tidak bisa diunduh dari YouTube.");
+      return sendText("❌ Could not download the video from YouTube.");
     }
 
     try {
@@ -62,10 +62,10 @@ export async function run(
       }
       const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
       const quality = parsed.quality === "best" ? "best" : `${parsed.quality}p`;
-      return await sendText(`✅ ${media.title} (${quality}) tersimpan di Google Drive\n🔗 ${link}`);
+      return await sendText(`✅ ${media.title} (${quality}) saved to Google Drive\n🔗 ${link}`);
     } catch (error) {
       console.error("yt Drive upload:", error?.message || error);
-      return sendText("❌ Gagal menyimpan hasil unduhan ke Google Drive.");
+      return sendText("❌ Failed to save the download to Google Drive.");
     }
   } finally {
     if (media?.filePath) await removeFile(media.filePath).catch(() => {});
