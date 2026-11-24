@@ -210,7 +210,13 @@ test("uploadToDrive creates the exact name even when suffixed variants exist", a
   const created = [];
   const driveClient = {
     files: {
-      list: async () => ({ data: { files: [{ id: "other", name: "clip (2).mp4" }] } }),
+      list: async (params) => ({
+        data: {
+          files: params.q.includes("name = 'clip.mp4'")
+            ? []
+            : [{ id: "other", name: "clip (2).mp4" }],
+        },
+      }),
       create: async (params) => {
         created.push(params);
         return { data: { id: "new-id", name: params.requestBody.name } };
