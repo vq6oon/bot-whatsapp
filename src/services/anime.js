@@ -12,7 +12,7 @@ const VIDEO_EXTENSIONS = new Set([".mp4", ".mkv", ".webm", ".m4v"]);
 export const ANIME_QUALITIES = new Set(["best", "worst", "360", "480", "720", "1080"]);
 export const ANIME_QUALITY_PATTERN = /^(best|worst|360|480|720|1080)$/;
 export const MAX_ANIDL_EPISODES = 20;
-export const ANIDL_FORMAT_HINT = ".anidl <title> [--ep <n|a-b>] [--quality <q>] [--format-list]  # q=best|worst|360|480|720|1080, also accepts --360";
+export const ANIDL_FORMAT_HINT = ".anidl <title> [-e <episode>] [-q <quality>] [--format-list]  # q=best|worst|360|480|720|1080, also accepts --360";
 
 const ANIDL_DIR = path.join(PATHS.downloads, "anidl");
 const ANI_CLI_BIN = process.env.ANI_CLI_BIN || "ani-cli";
@@ -47,13 +47,18 @@ export async function searchAnime(query, fetchImpl) {
   return json.data?.[0] ?? null;
 }
 
+export function formatAnimeTitle(title) {
+  const trimmed = String(title || "").trim();
+  return /\s/.test(trimmed) ? `"${trimmed}"` : trimmed;
+}
+
 export class AnimeQualityUnavailableError extends Error {
   constructor(title, episode, requested, available) {
     const formats = available.map((quality) => `${quality}p`).join(", ");
     super(
       `✗ Quality ${requested} is not available for ${title} episode ${episode}.\n` +
       `Available qualities: ${formats}\n` +
-      `Try: .anidl ${title} --quality ${available[0]}`,
+      `Try: .anidl ${formatAnimeTitle(title)} -e ${episode} -q ${available[0]}`,
     );
     this.name = "AnimeQualityUnavailableError";
     this.title = title;

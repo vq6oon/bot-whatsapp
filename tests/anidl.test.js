@@ -54,7 +54,17 @@ test(".anidl defaults to episode 1 and best quality", () => {
   });
 });
 
-test(".anidl parses --ep and a --quality flag", () => {
+test(".anidl parses -e and -q flags plus long aliases", () => {
+  assert.deepEqual(anidl.parseArguments(".anidl one piece -e 3 -q 720"), {
+    title: "one piece",
+    episodes: [3],
+    quality: "720",
+  });
+  assert.deepEqual(anidl.parseArguments(".anidl one piece --episode 5 --quality best"), {
+    title: "one piece",
+    episodes: [5],
+    quality: "best",
+  });
   assert.deepEqual(anidl.parseArguments(".anidl one piece --ep 3 --720"), {
     title: "one piece",
     episodes: [3],
@@ -249,7 +259,7 @@ test(".anidl --format-list lists qualities without downloading", async () => {
   assert.match(output.messages[1].text, /Available formats for yani neko episode 2/);
   assert.match(output.messages[1].text, /· 1080p/);
   assert.match(output.messages[1].text, /· 720p/);
-  assert.match(output.messages[1].text, /--quality 1080/);
+  assert.match(output.messages[1].text, /\.anidl "yani neko" -e 2 -q 1080/);
 });
 
 test(".anidl --format-list handles empty and failed probes", async () => {
@@ -468,7 +478,7 @@ test("downloadAnimeEpisode fails with the quality list when the requested format
       assert.ok(error instanceof AnimeQualityUnavailableError);
       assert.match(error.message, /720 is not available/);
       assert.match(error.message, /Available qualities: 1080p/);
-      assert.match(error.message, /\.anidl one piece --quality 1080/);
+      assert.match(error.message, /Try: \.anidl "one piece" -e 1 -q 1080/);
       return true;
     },
   );
@@ -509,7 +519,7 @@ test("anidl.run surfaces the format list without downloading", async () => {
     drive,
   );
   assert.match(output.messages[1].text, /Available qualities: 1080p/);
-  assert.match(output.messages[1].text, /\.anidl one piece --quality 1080/);
+  assert.match(output.messages[1].text, /Try: \.anidl "one piece" -e 1 -q 1080/);
 });
 
 test("animeDownloadError unwraps the quality-unavailable message", () => {

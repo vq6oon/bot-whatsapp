@@ -7,6 +7,7 @@ import {
   animeDownloadError,
   animeProbeError,
   downloadAnimeEpisode,
+  formatAnimeTitle,
   probeAnimeQualities,
   removeAnimeDownload,
 } from "../src/services/anime.js";
@@ -72,17 +73,19 @@ export function parseArguments(text) {
       formatList = true;
       continue;
     }
-    if (arg === "--ep" || arg === "--quality") {
+    if (arg === "--ep" || arg === "--episode" || arg === "-e") {
       const value = args[++i];
       if (!value || value.startsWith("--")) return { error: FORMAT_HINT };
-      if (arg === "--quality") {
-        if (!ANIME_QUALITY_PATTERN.test(value)) return { error: FORMAT_HINT };
-        quality = value;
-      } else {
-        const parsed = parseEpisodes(value);
-        if (!parsed) return { error: FORMAT_HINT };
-        episodes = parsed;
-      }
+      const parsed = parseEpisodes(value);
+      if (!parsed) return { error: FORMAT_HINT };
+      episodes = parsed;
+      continue;
+    }
+    if (arg === "--quality" || arg === "-q") {
+      const value = args[++i];
+      if (!value || value.startsWith("--")) return { error: FORMAT_HINT };
+      if (!ANIME_QUALITY_PATTERN.test(value)) return { error: FORMAT_HINT };
+      quality = value;
       continue;
     }
     if (arg.startsWith("--")) {
@@ -125,7 +128,7 @@ export async function run(
     const options = qualities.map((quality) => `· ${quality}p`).join("\n");
     return sendText(
       `Available formats for ${parsed.title} episode ${episode}:\n${options}\n\n` +
-      `Pick one: .anidl ${parsed.title} --ep ${episode} --quality ${qualities[0]}`,
+      `Pick one: .anidl ${formatAnimeTitle(parsed.title)} -e ${episode} -q ${qualities[0]}`,
     );
   }
   if (!drive && !DRIVE.folderId) {

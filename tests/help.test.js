@@ -36,9 +36,11 @@ test("help covers anidl --quality with the format-list behavior", async () => {
   const text = output.messages[0];
   assert.match(text, /--quality/);
   assert.match(text, /--format-list/);
-  assert.match(text, /--ep <n\|a-b>/);
-  assert.match(text, /yani neko/);
+  assert.match(text, /-e <episode>/);
+  assert.match(text, /-q <quality>/);
+  assert.match(text, /one piece/);
   assert.match(text, /Available qualities/);
+  assert.match(text, /Quote titles with spaces/);
 });
 
 test("<command> --help replies instead of running the command", async () => {
