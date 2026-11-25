@@ -18,9 +18,9 @@ export const HELP = {
   },
   ytm: { format: ".ytm <url>", about: "Download YouTube audio, send MP3 to chat", detail: ".ytm <url>\n\nDownload audio and send it as an MP3 audio message in this chat. No Drive needed." },
   anidl: {
-    format: ".anidl <title> [-e <episode>] [-q <quality>] [--format-list]",
-    about: "Download anime episodes to Drive via ani-cli",
-    detail: ".anidl <title> [-e <episode>] [-q <quality>] [--format-list]\n\n<q> = best | worst | 360 | 480 | 720 | 1080 (default best). The short form --360 / --720 etc. also works.\n\nExamples: .anidl \"one piece\" -e 3 -q 720\n.anidl --format-list\n\nQuote titles with spaces. -e|--episode selects the episode and -q|--quality selects the quality. --format-list only lists the qualities available for the first episode, without downloading.\n\nIf the requested quality is unavailable, the bot replies with the available qualities, e.g. Available qualities: 1080p",
+    format: ".anidl <title> [-e <episode>] [-q <quality>] [--format-list] [--search]",
+    about: "Download anime episodes to Drive via ani-cli; list anime titles with --search",
+    detail: ".anidl <title> [-e <episode>] [-q <quality>] [--format-list] [--search]\n\n<q> = best | worst | 360 | 480 | 720 | 1080 (default best). The short form --360 / --720 etc. also works.\n\nExamples: .anidl \"one piece\" -e 3 -q 720\n.anidl --format-list\n.anidl --search \"dandadan\"\n\nQuote titles with spaces. -e|--episode selects the episode and -q|--quality selects the quality. --format-list only lists the qualities available for the first episode, without downloading. --search lists anime titles instead of downloading.\n\nIf the requested quality is unavailable, the bot replies with the available qualities, e.g. Available qualities: 1080p",
   },
   getani: { format: ".getani <title>", about: "Search anime, sends cover and synopsis", detail: ".getani <title>\n\nExample: .getani Naruto" },
   tiktok: { format: ".tiktok <url> [video|hd|audio|photo]", about: "Download TikTok media", detail: ".tiktok <url> [video|hd|audio|photo]\n\nDefault: video. hd = high quality, audio = sound only, photo = each slide." },

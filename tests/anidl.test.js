@@ -14,6 +14,7 @@ import {
   parseAnimeQualities,
   probeAnimeQualities,
   removeAnimeDownload,
+  searchAnimeTitles,
 } from "../src/services/anime.js";
 
 function capture() {
@@ -98,6 +99,22 @@ test(".anidl parses --format-list", () => {
     quality: "720",
     formatList: true,
   });
+});
+
+test(".anidl parses --search and lists matching titles", () => {
+  assert.deepEqual(anidl.parseArguments(".anidl --search dandadan"), {
+    title: "dandadan",
+    episodes: [1],
+    quality: "best",
+    search: true,
+  });
+  assert.deepEqual(anidl.parseArguments('.anidl --search "dandadan s2"'), {
+    title: "dandadan s2",
+    episodes: [1],
+    quality: "best",
+    search: true,
+  });
+  assert.ok(anidl.parseArguments(".anidl --search").error);
 });
 
 test(".anidl rejects malformed or oversized episode ranges", () => {
@@ -262,6 +279,48 @@ test(".anidl --format-list lists qualities without downloading", async () => {
   assert.match(output.messages[1].text, /\.anidl "yani neko" -e 2 -q 1080/);
 });
 
+test(".anidl --search lists anime titles without downloading", async () => {
+  const output = capture();
+  const searched = [];
+  const downloaded = [];
+
+  await anidl.run(
+    { text: ".anidl --search dandadan s2", sendText: output.sendText },
+    async (...args) => { downloaded.push(args); return episode; },
+    async () => {},
+    undefined,
+    async () => { throw new Error("probe should not run"); },
+    async (query) => {
+      searched.push(query);
+      return [{ title: "Dandadan" }, { title: "Dandadan 2nd Season" }];
+    },
+  );
+
+  assert.deepEqual(searched, ["dandadan s2"]);
+  assert.equal(downloaded.length, 0);
+  assert.match(output.messages[0].text, /Searching anime for dandadan s2/);
+  assert.match(output.messages[1].text, /Available titles for dandadan s2/);
+  assert.match(output.messages[1].text, /· Dandadan/);
+  assert.match(output.messages[1].text, /· "Dandadan 2nd Season"/);
+  assert.match(output.messages[1].text, /Pick one and run/);
+});
+
+test(".anidl --search reports when no anime titles are found", async () => {
+  const output = capture();
+
+  await anidl.run(
+    { text: ".anidl --search unknown anime", sendText: output.sendText },
+    async () => {},
+    async () => {},
+    undefined,
+    async () => [],
+    async () => [],
+  );
+
+  assert.match(output.messages[0].text, /Searching anime for unknown anime/);
+  assert.match(output.messages[1].text, /No anime titles found for unknown anime/);
+});
+
 test(".anidl --format-list handles empty and failed probes", async () => {
   const empty = capture();
   await anidl.run(
@@ -402,6 +461,17 @@ test("animeDownloadError translates timeout and missing binary", () => {
   assert.match(animeDownloadError({ code: "ENOENT" }), /is not installed/);
   assert.match(animeDownloadError({ killed: true }), /timed out/);
   assert.match(animeDownloadError(new Error("boom")), /Failed to download the anime/);
+});
+
+test("searchAnimeTitles queries the anime API with a limit and returns titles", async () => {
+  const calls = [];
+  const results = await searchAnimeTitles("dandadan s2", async (url) => {
+    calls.push(url.toString());
+    return { ok: true, json: async () => ({ data: [{ title: "Dandadan" }] }) };
+  });
+
+  assert.equal(calls[0], "https://api.tenrai.org/v1/anime?q=dandadan+s2&limit=10");
+  assert.deepEqual(results, [{ title: "Dandadan" }]);
 });
 
 test(".getani replaces .anime and both new commands are advertised in the menu", async () => {

@@ -36,6 +36,7 @@ test("help covers anidl --quality with the format-list behavior", async () => {
   const text = output.messages[0];
   assert.match(text, /--quality/);
   assert.match(text, /--format-list/);
+  assert.match(text, /--search/);
   assert.match(text, /-e <episode>/);
   assert.match(text, /-q <quality>/);
   assert.match(text, /one piece/);

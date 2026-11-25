@@ -12,7 +12,7 @@ const VIDEO_EXTENSIONS = new Set([".mp4", ".mkv", ".webm", ".m4v"]);
 export const ANIME_QUALITIES = new Set(["best", "worst", "360", "480", "720", "1080"]);
 export const ANIME_QUALITY_PATTERN = /^(best|worst|360|480|720|1080)$/;
 export const MAX_ANIDL_EPISODES = 20;
-export const ANIDL_FORMAT_HINT = ".anidl <title> [-e <episode>] [-q <quality>] [--format-list]  # q=best|worst|360|480|720|1080, also accepts --360";
+export const ANIDL_FORMAT_HINT = ".anidl <title> [-e <episode>] [-q <quality>] [--format-list] [--search]  # q=best|worst|360|480|720|1080, also accepts --360";
 
 const ANIDL_DIR = path.join(PATHS.downloads, "anidl");
 const ANI_CLI_BIN = process.env.ANI_CLI_BIN || "ani-cli";
@@ -31,11 +31,13 @@ function animeEnv(overrides = {}) {
   };
 }
 
-export async function searchAnime(query, fetchImpl) {
+const ANIME_SEARCH_LIMIT = 10;
+
+export async function searchAnimeTitles(query, fetchImpl, limit = ANIME_SEARCH_LIMIT) {
   const fetch = fetchImpl || (await import("node-fetch")).default;
   const url = new URL(API_URL);
   url.searchParams.set("q", query);
-  url.searchParams.set("limit", "1");
+  url.searchParams.set("limit", String(limit));
 
   const response = await fetch(url, {
     headers: { Accept: "application/json" },
@@ -44,7 +46,12 @@ export async function searchAnime(query, fetchImpl) {
   if (!response.ok) throw new Error(`Anime API returned HTTP ${response.status}`);
 
   const json = await response.json();
-  return json.data?.[0] ?? null;
+  return json.data ?? [];
+}
+
+export async function searchAnime(query, fetchImpl) {
+  const results = await searchAnimeTitles(query, fetchImpl);
+  return results[0] ?? null;
 }
 
 export function formatAnimeTitle(title) {

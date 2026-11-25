@@ -10,6 +10,7 @@ import {
   formatAnimeTitle,
   probeAnimeQualities,
   removeAnimeDownload,
+  searchAnimeTitles,
 } from "../src/services/anime.js";
 
 export const name = "anidl";
@@ -67,10 +68,15 @@ export function parseArguments(text) {
   let episodes = [1];
   let quality = "best";
   let formatList = false;
+  let search = false;
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
     if (arg === "--format-list") {
       formatList = true;
+      continue;
+    }
+    if (arg === "--search") {
+      search = true;
       continue;
     }
     if (arg === "--ep" || arg === "--episode" || arg === "-e") {
@@ -100,7 +106,9 @@ export function parseArguments(text) {
 
   const title = words.join(" ").trim();
   if (!title) return { error: FORMAT_HINT };
-  return { title, episodes, quality, ...(formatList ? { formatList: true } : {}) };
+  const parsed = { title, episodes, quality, ...(formatList ? { formatList: true } : {}) };
+  if (search) return { ...parsed, search: true };
+  return parsed;
 }
 
 export async function run(
@@ -109,9 +117,31 @@ export async function run(
   removeFile = removeAnimeDownload,
   drive,
   probe = probeAnimeQualities,
+  search = searchAnimeTitles,
 ) {
   const parsed = parseArguments(text);
   if (parsed.error) return sendText(parsed.error);
+  if (parsed.search) {
+    const query = parsed.title;
+    await sendText(`· Searching anime for ${query}...`);
+    let results;
+    try {
+      results = await search(query);
+    } catch (error) {
+      console.error("anidl search:", error?.message || error);
+      return sendText("✗ Anime search is temporarily unavailable. Try again later.");
+    }
+
+    const titles = Array.isArray(results)
+      ? results.map((anime) => anime?.title || anime?.title_english || "Unknown").filter(Boolean)
+      : [];
+    if (!titles.length) return sendText(`✗ No anime titles found for ${query}.`);
+
+    const options = titles.map((title) => `· ${formatAnimeTitle(title)}`).join("\n");
+    return sendText(
+      `Available titles for ${query}:\n${options}\n\nPick one and run: .anidl "<title>" -e <episode> -q <quality>`,
+    );
+  }
   if (parsed.formatList) {
     const episode = parsed.episodes[0];
     await sendText(`· Checking formats for ${parsed.title} episode ${episode}...`);
