@@ -300,7 +300,7 @@ test(".anidl --search lists anime titles without downloading", async () => {
   assert.equal(downloaded.length, 0);
   assert.match(output.messages[0].text, /Searching anime for dandadan s2/);
   assert.match(output.messages[1].text, /Available titles for dandadan s2/);
-  assert.match(output.messages[1].text, /· Dandadan/);
+  assert.match(output.messages[1].text, /· "Dandadan"/);
   assert.match(output.messages[1].text, /· "Dandadan 2nd Season"/);
   assert.match(output.messages[1].text, /Pick one and run/);
 });

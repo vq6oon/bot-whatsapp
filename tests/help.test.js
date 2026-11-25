@@ -41,7 +41,7 @@ test("help covers anidl --quality with the format-list behavior", async () => {
   assert.match(text, /-q <quality>/);
   assert.match(text, /one piece/);
   assert.match(text, /Available qualities/);
-  assert.match(text, /Quote titles with spaces/);
+  assert.match(text, /Always quote anime titles/);
 });
 
 test("<command> --help replies instead of running the command", async () => {

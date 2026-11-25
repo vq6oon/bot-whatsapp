@@ -56,7 +56,7 @@ export async function searchAnime(query, fetchImpl) {
 
 export function formatAnimeTitle(title) {
   const trimmed = String(title || "").trim();
-  return /\s/.test(trimmed) ? `"${trimmed}"` : trimmed;
+  return `"${trimmed}"`;
 }
 
 export class AnimeQualityUnavailableError extends Error {
