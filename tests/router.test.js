@@ -25,6 +25,15 @@ test("removed guessing command falls back to unknown-command reply", async () =>
   assert.deepEqual(output.messages, ["Perintah tidak dikenal. Buka .menu untuk melihat menu."]);
 });
 
+test("removed device info command falls back to unknown-command reply", async () => {
+  const output = capture();
+
+  const result = await dispatch({ text: ".deviceinfo", sendText: output.sendText });
+
+  assert.equal(result, null);
+  assert.deepEqual(output.messages, ["Perintah tidak dikenal. Buka .menu untuk melihat menu."]);
+});
+
 test("empty messages do not trigger the unknown-command reply", async () => {
   const output = capture();
 

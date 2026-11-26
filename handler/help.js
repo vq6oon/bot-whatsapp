@@ -5,35 +5,46 @@ export const name = "help";
 // One entry per command: format line + one-line behavior note.
 // Namespace styling: duplicate subcommands (encode64/biner) share owner.
 export const HELP = {
-  menu: { format: ".menu", about: "Show this menu" },
-  info: { format: ".info", about: "Bot name, developer, framework, version" },
-  rules: { format: ".rules", about: "Usage rules" },
-  checkdrive: { format: ".checkdrive", about: "Drive folder name, file count, folder link" },
-  list: { format: ".list [audio|video|document|photo]", about: "List Drive files, optionally filtered by type" },
+  menu: { format: ".menu", about: "Show the command menu" },
+  info: { format: ".info", about: "Show bot, developer, framework, and version information" },
+  rules: { format: ".rules", about: "Show bot usage rules" },
+  checkdrive: { format: ".checkdrive", about: "Show Drive folder name, file count, and folder link" },
+  list: { format: ".list [audio|video|document|photo]", about: "List Drive files with an optional type filter" },
   upload: { format: ".upload [name]", about: "Upload attached or quoted media to Drive" },
   yt: {
     format: ".yt <url> [--<360|480|720|1080|best>]",
-    about: "Download YouTube video to Drive; default best",
-    detail: ".yt <url> [--<360|480|720|1080|best>]\n\nExample: .yt https://youtu.be/abc123 --720\nNo flag = best. URL must be youtube.com / youtu.be.",
+    about: "Download a YouTube video to Google Drive",
+    detail: "Example: .yt https://youtu.be/abc123 --720\nWithout a flag, the bot selects the best available quality.\nAccepted URLs: youtube.com or youtu.be.",
   },
-  ytm: { format: ".ytm <url>", about: "Download YouTube audio, send MP3 to chat", detail: ".ytm <url>\n\nDownload audio and send it as an MP3 audio message in this chat. No Drive needed." },
+  ytm: {
+    format: ".ytm <url>",
+    about: "Download YouTube audio as MP3 and send it to chat",
+    detail: "Sends a playable MP3 audio message to chat. Google Drive is not required.",
+  },
   anidl: {
     format: ".anidl <title> [-e <episode>] [-q <quality>] [--format-list] [--search]",
-    about: "Download anime episodes to Drive via ani-cli; list anime titles with --search",
-    detail: ".anidl <title> [-e <episode>] [-q <quality>] [--format-list] [--search]\n\n<q> = best | worst | 360 | 480 | 720 | 1080 (default best). The short form --360 / --720 etc. also works.\n\nExamples: .anidl \"one piece\" -e 3 -q 720\n.anidl --format-list\n.anidl --search \"dandadan\"\n\nAlways quote anime titles. -e|--episode selects the episode and -q|--quality selects the quality. --format-list only lists the qualities available for the first episode, without downloading. --search lists anime titles instead of downloading.\n\nIf the requested quality is unavailable, the bot replies with the available qualities, e.g. Available qualities: 1080p",
+    about: "Download anime episodes to Google Drive or search anime titles",
+    detail: "Quality: best | worst | 360 | 480 | 720 | 1080. Default: best. Short flags such as --720 also work.\nExample: .anidl \"one piece\" -e 3 -q 720\nList formats: .anidl --format-list\nSearch titles: .anidl --search \"dandadan\"\nAlways quote anime titles. -e|--episode selects episodes; -q|--quality selects quality. --format-list lists qualities for the first episode without downloading. --search lists anime titles without downloading. If a quality is unavailable, the bot shows available qualities.",
   },
-  getani: { format: ".getani <title>", about: "Search anime, sends cover and synopsis", detail: ".getani <title>\n\nExample: .getani Naruto" },
-  tiktok: { format: ".tiktok <url> [video|hd|audio|photo]", about: "Download TikTok media", detail: ".tiktok <url> [video|hd|audio|photo]\n\nDefault: video. hd = high quality, audio = sound only, photo = each slide." },
-  tts: { format: ".tts <text>", about: "Text to speech (gtts, English)" },
-  scan: { format: ".scan <url>", about: "Google Safe Browsing lookup" },
-  hitung: { format: ".hitung <expression>", about: "Calculator (digits, operators, %, .)" },
-  shorturl: { format: ".shorturl <url>", about: "Shorten URL (TinyURL)" },
-  deviceinfo: { format: ".deviceinfo", about: "Host OS, kernel, CPU, RAM, uptime" },
-  morse: { format: ".morse <text> / .textmorse <code>", about: "Encode/decode Morse" },
-  encode64: { format: ".encode64 <text> / .decode64 <code>", about: "Encode/decode Base64" },
-  biner: { format: ".biner <text> / .binarytext <code> / .textbinary <text>", about: "Binary conversion" },
-  sticker: { format: ".sticker / .s", about: "Image to 512x512 WebP sticker" },
-  help: { format: ".help [command]", about: "Show this help or one command's help" },
+  getani: {
+    format: ".getani <title>",
+    about: "Search anime and show its cover and synopsis",
+    detail: "Example: .getani Naruto",
+  },
+  tiktok: {
+    format: ".tiktok <url> [video|hd|audio|photo]",
+    about: "Download TikTok media",
+    detail: "Default mode: video. Use hd for high quality, audio for sound only, or photo to send each slide.",
+  },
+  tts: { format: ".tts <text>", about: "Convert text to English speech" },
+  scan: { format: ".scan <url>", about: "Check URL safety with Google Safe Browsing" },
+  hitung: { format: ".hitung <expression>", about: "Calculate a math expression" },
+  shorturl: { format: ".shorturl <url>", about: "Shorten a URL with TinyURL" },
+  morse: { format: ".morse <text> / .textmorse <code>", about: "Encode text to Morse or decode Morse code" },
+  encode64: { format: ".encode64 <text> / .decode64 <code>", about: "Encode or decode Base64" },
+  biner: { format: ".biner <text> / .binarytext <code> / .textbinary <text>", about: "Convert between text and binary" },
+  sticker: { format: ".sticker / .s", about: "Convert an image to a 512×512 WebP sticker" },
+  help: { format: ".help [command]", about: "Show all commands or help for one command" },
 };
 
 // Command prefixes that answer to the same help block (e.g. .encode64/.decode64).
@@ -41,7 +52,7 @@ const OWNERS = {
   menu: "menu", info: "info", rules: "rules", checkdrive: "checkdrive",
   list: "list", upload: "upload", yt: "yt", ytm: "ytm", anidl: "anidl",
   getani: "getani", tiktok: "tiktok", tts: "tts", scan: "scan", hitung: "hitung",
-  shorturl: "shorturl", deviceinfo: "deviceinfo",
+  shorturl: "shorturl",
   morse: "morse", textmorse: "morse",
   encode64: "encode64", decode64: "encode64",
   biner: "biner", textbinary: "biner", binarytext: "biner",
@@ -62,15 +73,17 @@ export function helpText(command) {
   );
   const entry = HELP[owner];
   if (!entry) return `✗ No help for \`${command}\`. Try \`.help\`.`;
-  if (entry.detail) return `*${entry.format}*\n\n${entry.detail}`;
-  return `*${entry.format}*\n\n${entry.about}`;
+
+  const heading = `.${entry.format.slice(1)} · ${entry.about}`;
+  if (entry.detail) return `${heading}\n\n${entry.detail}`;
+  return heading;
 }
 
 export function allHelp() {
-  const rows = Object.entries(HELP).map(
-    ([key, entry]) => `\`${entry.format}\` — ${entry.about}`,
+  const rows = Object.values(HELP).map(
+    (entry) => `.${entry.format.slice(1)} · ${entry.about}`,
   );
-  return `${BOT_NAME} commands\n\n${rows.join("\n")}\n\nType \`.help <command>\` for details.`;
+  return `Commands for ${BOT_NAME}\n\n${rows.join("\n")}\n\nType \`.help <command>\` for more details.`;
 }
 
 export async function run({ text, sendText }) {

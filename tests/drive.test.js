@@ -250,6 +250,8 @@ test("menu advertises the Drive commands it actually implements", async () => {
   assert.match(sent.caption, /\.list \[type\]/);
   assert.match(sent.caption, /\.upload \[name\]/);
   assert.doesNotMatch(sent.caption, /\(na\)/);
+  assert.doesNotMatch(sent.caption, /\.tebak/);
+  assert.doesNotMatch(sent.caption, /\.deviceinfo/);
   assert.doesNotMatch(sent.caption, /Not integrated/);
   assert.doesNotMatch(sent.caption, /\.statusbot/);
 });

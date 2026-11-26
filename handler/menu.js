@@ -38,7 +38,6 @@ export async function run({ sock, from }) {
     ".morse / .textmorse · morse",
     ".encode64 / .decode64 · base64",
     ".biner / .binarytext · binary",
-    ".deviceinfo · device info",
     ".sticker / .s · image → sticker",
     "",
     DEVELOPER,

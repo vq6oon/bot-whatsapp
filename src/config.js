@@ -10,7 +10,6 @@ export const PATHS = {
   logs: "./data/logs",
   auth: "./data/auth_info",
   banner: "assets/kamui-bot.png",
-  deviceBanner: "assets/kamui-bot.png",
 };
 
 export const DRIVE = {
