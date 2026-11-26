@@ -8,11 +8,15 @@ import * as anime from "../handler/anime.js";
 import * as menu from "../handler/menu.js";
 import {
   AnimeQualityUnavailableError,
+  findAnimeSubtitle,
+  muxAnimeSubtitles,
   animeDownloadError,
   downloadAnimeEpisode,
+  parseAniCliTitles,
   parseAnimeQualities,
   probeAnimeQualities,
   removeAnimeDownload,
+  searchAniCliTitles,
   searchAnimeTitles,
 } from "../src/services/anime.js";
 
@@ -332,7 +336,7 @@ test(".anime --search reports when no anime titles are found", async () => {
   );
 
   assert.match(output.messages[0].text, /Searching anime for unknown anime/);
-  assert.match(output.messages[1].text, /No anime titles found for unknown anime/);
+  assert.match(output.messages[1].text, /No title list for unknown anime/);
 });
 
 test(".anime --format-list handles empty and failed probes", async () => {
@@ -748,4 +752,89 @@ test("removeAnimeDownload removes the per-invocation directory", async () => {
 
   await assert.rejects(fs.stat(filePath), { code: "ENOENT" });
   await assert.rejects(fs.stat(dir), { code: "ENOENT" });
+});
+test("parseAniCliTitles strips menu numbering and ANSI codes", () => {
+  const raw = "\u001b[1;32m1\u001b[0m DAN DA DAN\n2 DAN DA DAN Season 2\n3 Dandadan 3rd Season\n";
+  assert.deepEqual(parseAniCliTitles(raw, 2), ["DAN DA DAN", "DAN DA DAN Season 2"]);
+  assert.deepEqual(parseAniCliTitles(""), []);
+  assert.deepEqual(parseAniCliTitles("Frieren\nOne Piece"), ["Frieren", "One Piece"]);
+});
+
+test("searchAniCliTitles reads the captured ani-cli menu", async () => {
+  const calls = [];
+  const titles = await searchAniCliTitles("dandadan", {
+    run: async (command, args, options) => {
+      calls.push([command, args]);
+      await fs.writeFile(options.env.ANI_CLI_CAPTURE_FILE, "1 DAN DA DAN\n2 DAN DA DAN Season 2\n");
+      const error = new Error("Invalid anime selection");
+      error.code = 1;
+      throw error;
+    },
+  });
+
+  assert.deepEqual(calls[0], ["ani-cli", ["-d", "dandadan"]]);
+  assert.deepEqual(titles, ["DAN DA DAN", "DAN DA DAN Season 2"]);
+});
+
+test("findAnimeSubtitle prefers the newest subtitle file", async () => {
+  const entries = [
+    { name: "Episode 1.mp4", mtimeMs: 9_000, isFile: () => true },
+    { name: "Episode 1.vtt", mtimeMs: 8_000, isFile: () => true },
+    { name: "Episode 1.en.srt", mtimeMs: 9_500, isFile: () => true },
+  ];
+  assert.equal(
+    await findAnimeSubtitle("/downloads/anime/job", async () => entries),
+    path.join("/downloads/anime/job", "Episode 1.en.srt"),
+  );
+  assert.equal(await findAnimeSubtitle("/downloads/anime/job", async () => []), null);
+});
+
+test("muxAnimeSubtitles embeds the track and keeps the original file name", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "anime-mux-"));
+  const videoPath = path.join(dir, "Dandadan Episode 1.mp4");
+  const subtitlePath = path.join(dir, "Dandadan Episode 1.vtt");
+  await fs.writeFile(videoPath, "raw video");
+  await fs.writeFile(subtitlePath, "WEBVTT\n");
+  const calls = [];
+  try {
+    const result = await muxAnimeSubtitles(videoPath, subtitlePath, {
+      run: async (command, args) => {
+        calls.push([command, args]);
+        await fs.writeFile(args.at(-1), "muxed video");
+      },
+    });
+
+    assert.equal(result, videoPath);
+    assert.equal(await fs.readFile(videoPath, "utf8"), "muxed video");
+    assert.equal(calls[0][0], "ffmpeg");
+    assert.ok(calls[0][1].includes("mov_text"));
+    assert.equal(calls[0][1].at(-1), path.join(dir, "Dandadan Episode 1.muxed.mp4"));
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("downloadAnimeEpisode muxes the ani-cli subtitle into the returned file", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "anime-sub-"));
+  const videoPath = path.join(dir, "Dandadan Episode 1.mp4");
+  await fs.writeFile(videoPath, "video");
+  const muxed = [];
+  try {
+    const media = await downloadAnimeEpisode("dandadan", { episode: 1, quality: "best" }, {
+      run: async () => ({}),
+      probeQualities: false,
+      downloadDir: dir,
+      mux: async (video, subtitle) => {
+        muxed.push([path.basename(video), path.basename(subtitle)]);
+        return video;
+      },
+      findSubtitle: async () => path.join(dir, "Dandadan Episode 1.vtt"),
+    });
+
+    assert.deepEqual(muxed, [["Dandadan Episode 1.mp4", "Dandadan Episode 1.vtt"]]);
+    assert.equal(media.fileName, "Dandadan Episode 1.mp4");
+    assert.equal(media.filePath, videoPath);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
 });

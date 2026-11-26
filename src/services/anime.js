@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { PATHS } from "../config.js";
@@ -8,6 +9,7 @@ import { PATHS } from "../config.js";
 const execFileAsync = promisify(execFile);
 const API_URL = "https://api.tenrai.org/v1/anime";
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mkv", ".webm", ".m4v"]);
+const SUBTITLE_EXTENSIONS = new Set([".vtt", ".srt", ".ass", ".ssa"]);
 
 export const ANIME_QUALITIES = new Set(["best", "worst", "360", "480", "720", "1080"]);
 export const ANIME_QUALITY_PATTERN = /^(best|worst|360|480|720|1080)$/;
@@ -57,6 +59,108 @@ export async function searchAnime(query, fetchImpl) {
 export function formatAnimeTitle(title) {
   const trimmed = String(title || "").trim();
   return `"${trimmed}"`;
+}
+
+// ani-cli prints its title menu as "<n> <title>" lines once fzf reads stdin.
+export function parseAniCliTitles(raw, limit = ANIME_SEARCH_LIMIT) {
+  const lines = String(raw || "")
+    .split("\n")
+    .map((line) => line.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "").trim())
+    .filter(Boolean);
+  if (!lines.length) return [];
+
+  const numbered = lines.every((line, index) => {
+    const prefix = String(index + 1);
+    return line.startsWith(prefix) && (line.length === prefix.length || /\s/.test(line[prefix.length]));
+  });
+  const titles = numbered
+    ? lines.map((line) => line.replace(/^\d+\s+/, "").trim())
+    : lines;
+  return titles.filter(Boolean).slice(0, limit);
+}
+
+// ani-cli's own search, so titles match what the downloader will pick.
+export async function searchAniCliTitles(query, options = {}) {
+  const run = options.run || execFileAsync;
+  const limit = options.limit ?? ANIME_SEARCH_LIMIT;
+  const timeout = options.timeout ?? ANI_PROBE_TIMEOUT_MS;
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "anicli-search-"));
+  const captureFile = path.join(dir, "captured.txt");
+  const menuPath = path.join(dir, "capture-menu");
+
+  try {
+    await fs.writeFile(menuPath, '#!/bin/sh\ncat > "$ANI_CLI_CAPTURE_FILE"\nexit 1\n', { mode: 0o755 });
+    const env = animeEnv({
+      ANI_CLI_MENU: menuPath,
+      ANI_CLI_CAPTURE_FILE: captureFile,
+      ANI_CLI_PLAYER: "/bin/true",
+      ANI_CLI_DOWNLOAD_DIR: dir,
+    });
+    try {
+      await run(ANI_CLI_BIN, ["-d", query], { env, timeout, maxBuffer: 8 * 1024 * 1024 });
+    } catch (error) {
+      // The capture shim exits non-zero on purpose; read whatever it wrote.
+      if (!/selection|exit|code/i.test(String(error?.message || ""))) {
+        console.error("anidl search:", error?.message || error);
+      }
+    }
+    const raw = await fs.readFile(captureFile, "utf8").catch(() => "");
+    return parseAniCliTitles(raw, limit);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+export async function findAnimeSubtitle(dir, listFiles = defaultListFiles) {
+  const entries = await listFiles(dir).catch(() => []);
+  const subtitles = entries
+    .filter((entry) =>
+      entry.isFile?.() !== false && SUBTITLE_EXTENSIONS.has(path.extname(entry.name).toLowerCase()),
+    )
+    .sort((a, b) => (b.mtimeMs || 0) - (a.mtimeMs || 0));
+  if (!subtitles.length) return null;
+  return path.join(dir, subtitles[0].name);
+}
+
+// ani-cli saves a .vtt next to the video; embed it so the Drive file carries subtitles.
+export async function muxAnimeSubtitles(videoPath, subtitlePath, options = {}) {
+  if (!videoPath || !subtitlePath) return null;
+  const run = options.run || execFileAsync;
+  const parsed = path.parse(videoPath);
+  const subtitleCodec = subtitlePath.toLowerCase().endsWith(".vtt") ? "srt" : "copy";
+  const baseArgs = [
+    "-y",
+    "-i", videoPath,
+    "-i", subtitlePath,
+    "-map", "0:v:0",
+    "-map", "0:a?",
+    "-map", "1:0",
+    "-c", "copy",
+    "-c:s",
+  ];
+  const candidates = [];
+  if ([".mp4", ".m4v", ".mov"].includes(parsed.ext.toLowerCase())) {
+    candidates.push({ codec: "mov_text", outPath: path.join(parsed.dir, `${parsed.name}.muxed.mp4`) });
+  }
+  candidates.push({ codec: subtitleCodec, outPath: path.join(parsed.dir, `${parsed.name}.muxed.mkv`) });
+
+  for (const candidate of candidates) {
+    try {
+      await run("ffmpeg", [...baseArgs, candidate.codec, "-metadata:s:s:0", "language=eng", candidate.outPath], {
+        maxBuffer: 8 * 1024 * 1024,
+      });
+      const { size } = await fs.stat(candidate.outPath);
+      if (!size) continue;
+      await fs.rm(videoPath, { force: true });
+      const finalPath = path.join(parsed.dir, `${parsed.name}${path.extname(candidate.outPath)}`);
+      await fs.rename(candidate.outPath, finalPath);
+      return finalPath;
+    } catch (error) {
+      console.error("anime subtitle mux:", candidate.codec, error?.message || error);
+      await fs.rm(candidate.outPath, { force: true }).catch(() => {});
+    }
+  }
+  return null;
 }
 
 export class AnimeQualityUnavailableError extends Error {
@@ -119,6 +223,8 @@ export async function downloadAnimeEpisode(
     stat = (filePath) => fs.stat(filePath),
     now = () => Date.now(),
     mkdir = (dir) => fs.mkdir(dir, { recursive: true }),
+    mux = muxAnimeSubtitles,
+    findSubtitle = findAnimeSubtitle,
   } = options;
 
   const downloadDir = options.downloadDir || path.join(ANIME_DIR, `${now()}-${randomUUID()}`);
@@ -173,14 +279,20 @@ export async function downloadAnimeEpisode(
     if (!newest) throw new Error(`ani-cli produced no video for "${title}" episode ${episode}.`);
 
     const filePath = path.join(downloadDir, newest.name);
-    const extension = path.extname(newest.name);
+    const subtitle = await findSubtitle(downloadDir, listFiles).catch(() => null);
+    let finalPath = filePath;
+    if (subtitle) {
+      const muxed = await mux(filePath, subtitle, { run: options.ffmpegRun });
+      if (muxed) finalPath = muxed;
+    }
+    const extension = path.extname(finalPath);
     return {
-      title: path.basename(newest.name, extension),
-      fileName: newest.name,
+      title: path.basename(finalPath, extension),
+      fileName: path.basename(finalPath),
       quality: selectedQuality,
-      mimeType: "video/mp4",
-      filePath,
-      size: (await stat(filePath)).size,
+      mimeType: extension.toLowerCase() === ".mkv" ? "video/x-matroska" : "video/mp4",
+      filePath: finalPath,
+      size: (await stat(finalPath)).size,
     };
   } catch (error) {
     if (!options.downloadDir) {
@@ -217,9 +329,5 @@ export function animeDownloadError(error) {
 
 export async function removeAnimeDownload(filePath) {
   if (!filePath) return;
-  const dir = path.dirname(filePath);
-  await fs.rm(filePath, { force: true });
-  const subtitle = filePath.replace(/\.[^.]+$/, ".vtt");
-  if (subtitle !== filePath) await fs.rm(subtitle, { force: true });
-  await fs.rmdir(dir).catch(() => {});
+  await fs.rm(path.dirname(filePath), { recursive: true, force: true }).catch(() => {});
 }

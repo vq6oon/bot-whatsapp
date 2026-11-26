@@ -24,7 +24,7 @@ export const HELP = {
   anime: {
     format: ".anime <title> [-e <episode>] [-q <quality>] [--info|-i] [--search] [--format-list]",
     about: "Download anime to Drive or look up a title",
-    detail: "Look up a title: .anime \"naruto\" --info (or -i)\nDownload: .anime \"one piece\" -e 3 -q 720\nList formats: .anime \"one piece\" --format-list\nSearch titles: .anime \"dandadan\" --search\nQuality: best | worst | 360 | 480 | 720 | 1080. Default: best. Short flags such as --720 also work.\nWithout a flag the bot replies with the usage hint instead of downloading. Always quote anime titles. -e|--episode selects one episode or an inclusive range; -q|--quality selects quality. If a quality is unavailable, the bot shows available qualities.",
+    detail: "Look up a title: .anime \"naruto\" --info (or -i)\nDownload: .anime \"one piece\" -e 3 -q 720\nList formats: .anime \"one piece\" --format-list\nSearch titles: .anime \"dandadan\" --search\nQuality: best | worst | 360 | 480 | 720 | 1080. Default: best. Short flags such as --720 also work.\nSearch titles come from ani-cli's own index, the same one the downloader uses. Subtitles saved by ani-cli are embedded into the uploaded video when ffmpeg is installed.\nWithout a flag the bot replies with the usage hint instead of downloading. Always quote anime titles. -e|--episode selects one episode or an inclusive range; -q|--quality selects quality. If a quality is unavailable, the bot shows available qualities.",
   },
   tiktok: {
     format: ".tiktok <url> [video|hd|audio|photo]",

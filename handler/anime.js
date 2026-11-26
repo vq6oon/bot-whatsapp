@@ -10,8 +10,8 @@ import {
   formatAnimeTitle,
   probeAnimeQualities,
   removeAnimeDownload,
+  searchAniCliTitles,
   searchAnime,
-  searchAnimeTitles,
 } from "../src/services/anime.js";
 
 export const name = "anime";
@@ -136,7 +136,7 @@ export async function run(
   removeFile = removeAnimeDownload,
   drive,
   probe = probeAnimeQualities,
-  search = searchAnimeTitles,
+  search = searchAniCliTitles,
   lookup = searchAnime,
 ) {
   const parsed = parseArguments(text);
@@ -181,9 +181,15 @@ export async function run(
     }
 
     const titles = Array.isArray(results)
-      ? results.map((anime) => anime?.title || anime?.title_english || "Unknown").filter(Boolean)
+      ? results
+        .map((item) => (typeof item === "string" ? item : item?.title || item?.title_english))
+        .filter(Boolean)
       : [];
-    if (!titles.length) return sendText(`✗ No anime titles found for ${query}.`);
+    if (!titles.length) {
+      return sendText(
+        `✗ No title list for ${query}. ani-cli may have a single match; try: .anime "${query}" -e 1`,
+      );
+    }
 
     const options = titles.map((title) => `· ${formatAnimeTitle(title)}`).join("\n");
     return sendText(
