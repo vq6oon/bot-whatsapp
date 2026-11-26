@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -24,6 +25,14 @@ export function youtubeDlCommand(youtubedl) {
     file: process.env.YOUTUBE_DL_PYTHON || "python3.11",
     prefix: [youtubedl.constants.YOUTUBE_DL_PATH],
   };
+}
+
+// YOUTUBE_COOKIES wins; otherwise ./cookies.txt next to the bot is used.
+export function resolvedCookiesPath(cwd = process.cwd()) {
+  const explicit = process.env.YOUTUBE_COOKIES;
+  if (explicit) return explicit;
+  const local = path.join(cwd, "cookies.txt");
+  return fsSync.existsSync(local) ? local : null;
 }
 
 export function ytdlpFailureDetail(error) {
@@ -56,7 +65,11 @@ export function youtubeDownloadError(error) {
     return "✗ yt-dlp could not run. Install yt-dlp, or point YTDLP_BIN at it." + reason;
   }
   if (error?.code === 1 || error?.code === "1") {
-    return "✗ YouTube rejected the download or the format is unavailable. Try another public video link." + reason;
+    const botCheck = /sign in to confirm|not a bot|confirm your age/i.test(detail);
+    const fix = botCheck
+      ? "\n· fix: export youtube cookies and set YOUTUBE_COOKIES, or drop cookies.txt next to the bot"
+      : "";
+    return "✗ YouTube rejected the download or the format is unavailable. Try another public video link." + reason + fix;
   }
   return "✗ Failed to download media from YouTube. Try again later." + reason;
 }
@@ -92,7 +105,8 @@ export async function downloadYoutube(url, mode = "mp4", requestedQuality = "bes
   await fs.mkdir(PATHS.downloads, { recursive: true });
 
   const common = { noWarnings: true, noPlaylist: true };
-  if (process.env.YOUTUBE_COOKIES) common.cookies = process.env.YOUTUBE_COOKIES;
+  const cookies = resolvedCookiesPath();
+  if (cookies) common.cookies = cookies;
 
   const runYtdlp = (args, execOptions) =>
     execFileAsync(command.file, [...command.prefix, url, ...youtubedl.args(args)], execOptions);

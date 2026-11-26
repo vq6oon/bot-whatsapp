@@ -1,4 +1,7 @@
 import test from "node:test";
+import path from "node:path";
+import os from "node:os";
+import fs from "node:fs/promises";
 import assert from "node:assert/strict";
 import { DRIVE } from "../src/config.js";
 import * as yt from "../handler/yt.js";
@@ -8,6 +11,7 @@ import { probeVideoQuality } from "../src/services/youtube.js";
 import { qualityLabelFromSize } from "../src/utils/filenames.js";
 import {
   FORMAT_PREFERENCE,
+  resolvedCookiesPath,
   youtubeDlCommand,
   youtubeDownloadError,
   ytdlpFailureDetail,
@@ -388,4 +392,32 @@ test("FORMAT_PREFERENCE ends with a fallback that accepts any stream", () => {
   assert.ok(FORMAT_PREFERENCE.length >= 2);
   assert.equal(FORMAT_PREFERENCE.at(-1), "b");
   assert.ok(FORMAT_PREFERENCE[0].includes("ext=mp4"));
+});
+test("resolvedCookiesPath prefers the env var and falls back to ./cookies.txt", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "yt-cookies-"));
+  const original = process.env.YOUTUBE_COOKIES;
+  try {
+    delete process.env.YOUTUBE_COOKIES;
+    assert.equal(resolvedCookiesPath(dir), null);
+
+    await fs.writeFile(path.join(dir, "cookies.txt"), "# Netscape HTTP Cookie File\n");
+    assert.equal(resolvedCookiesPath(dir), path.join(dir, "cookies.txt"));
+
+    process.env.YOUTUBE_COOKIES = "/etc/kamui/cookies.txt";
+    assert.equal(resolvedCookiesPath(dir), "/etc/kamui/cookies.txt");
+  } finally {
+    if (original === undefined) delete process.env.YOUTUBE_COOKIES;
+    else process.env.YOUTUBE_COOKIES = original;
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a bot-check failure tells the user to pass cookies", () => {
+  const rejected = Object.assign(new Error("Command failed"), {
+    code: 1,
+    stderr: "ERROR: [youtube] abc: Sign in to confirm you’re not a bot. Use --cookies for the authentication.",
+  });
+  const text = youtubeDownloadError(rejected);
+  assert.match(text, /· reason: \[youtube\] abc: Sign in to confirm/);
+  assert.match(text, /· fix: export youtube cookies and set YOUTUBE_COOKIES/);
 });

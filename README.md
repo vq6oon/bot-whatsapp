@@ -41,7 +41,7 @@ YOUTUBE_DL_PYTHON=
 # Absolute path to a yt-dlp binary; wins over the bundled one
 YTDLP_BIN=
 
-# Cookies export for YouTube bot checks (Netscape format)
+# Cookies export for YouTube bot checks (Netscape format); ./cookies.txt is used when empty
 YOUTUBE_COOKIES=
 
 # ani-cli executable, menu shim, and download timeout in ms
@@ -114,7 +114,7 @@ A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`
 
 Both handlers delete the temporary download in a `finally` block, and both turn yt-dlp exit code 1 into "YouTube rejected the download or the format is unavailable" instead of leaking stderr. `downloadYoutube` tries three format selectors in order (strict mp4, then `bv*+ba/b`, then a single best stream) and clears partial files between attempts, because Shorts and some uploads only expose one codec family.
 
-The bundled yt-dlp ages out as YouTube changes its player. `YTDLP_BIN=/path/to/yt-dlp` replaces it without touching `node_modules`, and `YOUTUBE_COOKIES=/path/to/cookies.txt` passes a Netscape cookies export for the "Sign in to confirm you're not a bot" check. The reply now carries one `· reason: <last yt-dlp line>` line so a failure names its cause instead of guessing.
+The bundled yt-dlp ages out as YouTube changes its player. `YTDLP_BIN=/path/to/yt-dlp` replaces it without touching `node_modules`. YouTube also blocks datacenter IPs with "Sign in to confirm you're not a bot", so the downloader passes cookies from `YOUTUBE_COOKIES`, or from `./cookies.txt` next to the bot when that file exists. A bot-check failure replies with a `· fix:` line naming the env var. The reply now carries one `· reason: <last yt-dlp line>` line so a failure names its cause instead of guessing.
 
 ## Anime command
 
@@ -168,10 +168,10 @@ npm test
 # same as: node --test tests/drive.test.js tests/yt.test.js tests/anime.test.js tests/help.test.js tests/router.test.js
 ```
 
-98 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the yt-dlp command resolver and failure detail, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anime.test.js` covers argument parsing, the usage hint when no flag is given, `--info` and `--search` without downloads, the ani-cli menu capture and title parsing, subtitle discovery and muxing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the removal of `.anidl` and `.getani`. `tests/help.test.js` covers the `.help` listing, the shared menu catalog, menu-style sections for per-command help, aliases, `<command> --help`, the anime help entry, and emoji/em-dash-free help text. `tests/router.test.js` covers the unknown-message reply and removed-command fallbacks. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer; Node 12 rejects `--test`.
+100 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the yt-dlp command resolver and failure detail, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anime.test.js` covers argument parsing, the usage hint when no flag is given, `--info` and `--search` without downloads, the ani-cli menu capture and title parsing, subtitle discovery and muxing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the removal of `.anidl` and `.getani`. `tests/help.test.js` covers the `.help` listing, the shared menu catalog, menu-style sections for per-command help, aliases, `<command> --help`, the anime help entry, and emoji/em-dash-free help text. `tests/router.test.js` covers the unknown-message reply and removed-command fallbacks. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer; Node 12 rejects `--test`.
 
 ## Notes
 
 - Only one message per upsert is handled (`messages[0]`), and `dispatch` stops at the first matching handler.
 - `tools/panel.js` writes edits into `bot.js` over HTTP and needs `body-parser` plus `panel/index.html`; neither ships in this repository, so treat it as a local scratch tool only.
-- Never commit `.env`, `credentials/`, or `data/`.
+- Never commit `.env`, `cookies.txt`, `credentials/`, or `data/`. Cookies expire: export them again when YouTube starts rejecting the session.
