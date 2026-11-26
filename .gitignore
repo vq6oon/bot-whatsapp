@@ -1,7 +1,7 @@
-# Runtime (data sesi WhatsApp, unduhan, log)
+# Runtime: WhatsApp session, downloads, logs
 /data/
 
-# Kredensial: jangan pernah masuk repo
+# Credentials: never commit
 /.env
 /credentials/
 credentials.json
@@ -9,10 +9,14 @@ token.json
 auth_info/
 auth_info.bak.*
 
-# Dependensi
+# YouTube cookies: a browser session export, keep it local
+/cookies.txt
+cookies.txt
+
+# Dependencies
 /node_modules/
 
-# Sisa file lama
+# Old leftovers
 *.bak
 *.bak.*
 *.log
