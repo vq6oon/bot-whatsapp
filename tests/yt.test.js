@@ -11,6 +11,8 @@ import { probeVideoQuality } from "../src/services/youtube.js";
 import { qualityLabelFromSize } from "../src/utils/filenames.js";
 import {
   FORMAT_PREFERENCE,
+  activeCookies,
+  inspectCookiesFile,
   resolvedCookiesPath,
   youtubeDlCommand,
   youtubeDownloadError,
@@ -419,5 +421,41 @@ test("a bot-check failure tells the user to pass cookies", () => {
   });
   const text = youtubeDownloadError(rejected);
   assert.match(text, /· reason: \[youtube\] abc: Sign in to confirm/);
-  assert.match(text, /· fix: export youtube cookies and set YOUTUBE_COOKIES/);
+  assert.match(text, /· fix: export logged-in youtube cookies to cookies.txt/);
+});
+test("inspectCookiesFile separates a login export from visitor cookies", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "yt-cookie-names-"));
+  const visitor = path.join(dir, "visitor.txt");
+  const loggedIn = path.join(dir, "logged-in.txt");
+  try {
+    await fs.writeFile(visitor, [
+      "# Netscape HTTP Cookie File",
+      ".youtube.com\tTRUE\t/\tTRUE\t0\tVISITOR_INFO1_LIVE\tabc",
+      ".youtube.com\tTRUE\t/\tTRUE\t0\t__Secure-3PSID\tabc",
+      "",
+    ].join("\n"));
+    await fs.writeFile(loggedIn, [
+      "# Netscape HTTP Cookie File",
+      ".youtube.com\tTRUE\t/\tTRUE\t0\tSID\tabc",
+      ".youtube.com\tTRUE\t/\tTRUE\t0\tSAPISID\tabc",
+      "",
+    ].join("\n"));
+
+    assert.equal(inspectCookiesFile(visitor).loggedIn, false);
+    assert.equal(inspectCookiesFile(loggedIn).loggedIn, true);
+    assert.equal(inspectCookiesFile(path.join(dir, "missing.txt")), null);
+
+    const original = process.env.YOUTUBE_COOKIES;
+    try {
+      process.env.YOUTUBE_COOKIES = visitor;
+      assert.equal(activeCookies(), null);
+      process.env.YOUTUBE_COOKIES = loggedIn;
+      assert.equal(activeCookies().file, loggedIn);
+    } finally {
+      if (original === undefined) delete process.env.YOUTUBE_COOKIES;
+      else process.env.YOUTUBE_COOKIES = original;
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
 });

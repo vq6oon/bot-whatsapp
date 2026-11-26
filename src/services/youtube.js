@@ -27,12 +27,46 @@ export function youtubeDlCommand(youtubedl) {
   };
 }
 
+// Visitor-only cookie exports do not pass YouTube's bot check; they must carry a login.
+export function inspectCookiesFile(file) {
+  try {
+    const names = new Set(
+      fsSync.readFileSync(file, "utf8")
+        .split("\n")
+        .filter((line) => line && !line.startsWith("#"))
+        .map((line) => line.split("\t")[5])
+        .filter(Boolean),
+    );
+    const loggedIn = names.has("LOGIN_INFO") ||
+      (names.has("SID") && (names.has("SAPISID") || names.has("__Secure-3PAPISID")));
+    return { file, loggedIn };
+  } catch {
+    return null;
+  }
+}
+
 // YOUTUBE_COOKIES wins; otherwise ./cookies.txt next to the bot is used.
 export function resolvedCookiesPath(cwd = process.cwd()) {
   const explicit = process.env.YOUTUBE_COOKIES;
   if (explicit) return explicit;
   const local = path.join(cwd, "cookies.txt");
   return fsSync.existsSync(local) ? local : null;
+}
+
+// Only pass cookies that carry a login; a visitor-only file makes things worse.
+export function activeCookies(cwd = process.cwd()) {
+  const file = resolvedCookiesPath(cwd);
+  if (!file) return null;
+  const info = inspectCookiesFile(file);
+  if (!info) {
+    console.warn(`youtube cookies: cannot read ${file}`);
+    return null;
+  }
+  if (!info.loggedIn) {
+    console.warn(`youtube cookies: ${file} has no login cookies (SID, SAPISID, LOGIN_INFO); ignoring it`);
+    return null;
+  }
+  return info;
 }
 
 export function ytdlpFailureDetail(error) {
@@ -67,7 +101,7 @@ export function youtubeDownloadError(error) {
   if (error?.code === 1 || error?.code === "1") {
     const botCheck = /sign in to confirm|not a bot|confirm your age/i.test(detail);
     const fix = botCheck
-      ? "\n· fix: export youtube cookies and set YOUTUBE_COOKIES, or drop cookies.txt next to the bot"
+      ? "\n· fix: export logged-in youtube cookies to cookies.txt, or set YOUTUBE_PROXY for a residential IP"
       : "";
     return "✗ YouTube rejected the download or the format is unavailable. Try another public video link." + reason + fix;
   }
@@ -105,8 +139,9 @@ export async function downloadYoutube(url, mode = "mp4", requestedQuality = "bes
   await fs.mkdir(PATHS.downloads, { recursive: true });
 
   const common = { noWarnings: true, noPlaylist: true };
-  const cookies = resolvedCookiesPath();
-  if (cookies) common.cookies = cookies;
+  const cookies = activeCookies();
+  if (cookies) common.cookies = cookies.file;
+  if (process.env.YOUTUBE_PROXY) common.proxy = process.env.YOUTUBE_PROXY;
 
   const runYtdlp = (args, execOptions) =>
     execFileAsync(command.file, [...command.prefix, url, ...youtubedl.args(args)], execOptions);
