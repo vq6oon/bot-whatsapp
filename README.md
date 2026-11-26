@@ -61,7 +61,7 @@ One handler runs per message: `src/router.js` walks `HANDLERS` in order and exec
 | Command | Behavior |
 | --- | --- |
 | `.menu` | Banner image plus compact command list; each downloader links to `(.help <cmd>)` |
-| `.help [command]` | Full command list, or one command's usage (`<command> --help` works too) |
+| `.help [command]` | Grouped command list with the same sections as `.menu`, or one command's usage (`<command> --help` works too) |
 | `.info` | Bot name, developer, framework, version from `src/config.js` |
 | `.rules` | Usage rules |
 | `.checkdrive` | Drive folder name, file count, folder link |
