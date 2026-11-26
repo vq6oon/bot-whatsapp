@@ -5,7 +5,7 @@ WhatsApp bot built on Baileys v6 and Node.js. It downloads media (YouTube, TikTo
 ## Requirements
 
 - Node.js 20 or newer (`engines.node` is `>=20`; the test runner needs `node --test`)
-- `ffmpeg` on `PATH`; yt-dlp uses it to extract MP3 and mux MP4
+- `ffmpeg` on `PATH`; yt-dlp uses it to extract MP3 and mux MP4, and the anime handler embeds downloaded subtitles with it
 - `python3.11` on `PATH`; `youtube-dl-exec` runs as `python3.11 <youtube-dl-binary>`, override with `YOUTUBE_DL_PYTHON`
 - Google OAuth client and token for the Drive commands (see Drive setup)
 - `ani-cli` on `PATH` for `.anime`, plus a `yt-dlp` executable on `PATH` that runs under Python 3.11 (ani-cli prefers it over the system `ffmpeg`)
@@ -118,7 +118,11 @@ Flags work in any position, and the examples put the title first: `.anime "one p
 
 A message with no flag at all downloads nothing. The bot replies with `Format: .anime <title> ...` and `Details: .help anime`, so someone who only wants to read about a title cannot start a download by accident.
 
-`--info` (or `-i`) searches `api.tenrai.org`, then sends the cover image with episodes, score, air date, and synopsis. A title with no match replies `No anime found for <query>. Try: .anime "<query>" --search`. `--format-list` probes the first episode and replies with `Available formats` plus a ready-to-copy `-q` command. `--search` lists matching titles so the user can pick the right movie, season 2, or season 3 before downloading. Both `--search` and `--format-list` skip the download and Drive.
+`--info` (or `-i`) searches `api.tenrai.org`, then sends the cover image with episodes, score, air date, and synopsis. A title with no match replies `No anime found for <query>. Try: .anime "<query>" --search`. `--format-list` probes the first episode and replies with `Available formats` plus a ready-to-copy `-q` command.
+
+`--search` lists titles from ani-cli's own index through a capture shim for the menu program: the shim reads the numbered list from stdin and exits, and the bot strips the numbering and ANSI codes. Titles therefore match the ones the downloader will pick, unlike `--info`, which still reads the MAL-based API. A query with a single match makes ani-cli skip the title menu and print episode numbers instead, so the bot answers `No title list for <query>. ani-cli may have a single match; try: .anime "<query>" -e 1`.
+
+ani-cli saves a `.vtt` next to the episode whenever the selected source ships subtitles. `downloadAnimeEpisode` finds the newest `.vtt`/`.srt`/`.ass`/`.ssa` in the job directory and muxes it with ffmpeg before the Drive upload: `mov_text` into the original MP4 name for mp4/m4v/mov, with an MKV + `srt` remux as fallback. The muxed file replaces the raw download, so the Drive name keeps its `(720p)` suffix and the subtitle track rides along. When ffmpeg is missing or the mux fails, the bot uploads the raw video and logs the reason.
 
 Before downloading, the bot probes ani-cli in `debug` player mode to read the offered streams (the `All links:` block). If the requested quality is not among them it fails fast with the list, e.g. requesting `--720` on a series that only offers 1080p replies:
 
@@ -156,7 +160,7 @@ npm test
 # same as: node --test tests/drive.test.js tests/yt.test.js tests/anime.test.js tests/help.test.js tests/router.test.js
 ```
 
-87 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anime.test.js` covers argument parsing, the usage hint when no flag is given, `--info` and `--search` without downloads, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the removal of `.anidl` and `.getani`. `tests/help.test.js` covers the `.help` listing, menu-style help format, aliases, `<command> --help`, the anime help entry, and emoji-free help text. `tests/router.test.js` covers the unknown-message reply and removed-command fallbacks. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer; Node 12 rejects `--test`.
+92 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anime.test.js` covers argument parsing, the usage hint when no flag is given, `--info` and `--search` without downloads, the ani-cli menu capture and title parsing, subtitle discovery and muxing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the removal of `.anidl` and `.getani`. `tests/help.test.js` covers the `.help` listing, menu-style help format, aliases, `<command> --help`, the anime help entry, and emoji-free help text. `tests/router.test.js` covers the unknown-message reply and removed-command fallbacks. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer; Node 12 rejects `--test`.
 
 ## Notes
 
