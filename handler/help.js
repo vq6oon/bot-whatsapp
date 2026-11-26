@@ -5,41 +5,248 @@ export const name = "help";
 // One entry per command: format line + one-line behavior note.
 // Namespace styling: duplicate subcommands (encode64/biner) share owner.
 export const HELP = {
-  menu: { format: ".menu", about: "Show the command menu" },
-  info: { format: ".info", about: "Show bot name, developer, framework, and version" },
-  rules: { format: ".rules", about: "Show usage rules" },
-  checkdrive: { format: ".checkdrive", about: "Show Drive folder name, file count, and folder link" },
-  list: { format: ".list [audio|video|document|photo]", about: "List Drive files with an optional type filter" },
-  upload: { format: ".upload [name]", about: "Upload attached or quoted media to Drive" },
+  menu: {
+    format: ".menu",
+    about: "command menu",
+    sections: [
+      { title: "Usage", rows: [
+        ".menu · banner plus every command, grouped",
+        "· each downloader row links to its own .help",
+      ] },
+    ],
+  },
+  info: {
+    format: ".info",
+    about: "bot information",
+    sections: [
+      { title: "Shows", rows: [
+        "· name, developer, language, framework, platform",
+        "· github link and version",
+      ] },
+    ],
+  },
+  rules: {
+    format: ".rules",
+    about: "usage rules",
+    sections: [
+      { title: "Covers", rows: [
+        "· spam, upload limits, and abuse",
+        "· the bot can stop or restrict access at any time",
+      ] },
+    ],
+  },
+  checkdrive: {
+    format: ".checkdrive",
+    about: "folder status",
+    sections: [
+      { title: "Shows", rows: [
+        "· folder name, file count, folder link",
+        "· needs DRIVE_FOLDER_ID in .env",
+      ] },
+    ],
+  },
+  list: {
+    format: ".list [audio|video|document|photo]",
+    about: "list files",
+    sections: [
+      { title: "Usage", rows: [
+        ".list · every file in the Drive folder",
+        ".list video · one type only",
+        ".list audio · audio files",
+      ] },
+      { title: "Types", rows: [
+        "· audio, video, document, photo",
+        "· one link per file",
+      ] },
+    ],
+  },
+  upload: {
+    format: ".upload [name]",
+    about: "upload media",
+    sections: [
+      { title: "Usage", rows: [
+        ".upload · media attached to the same message",
+        ".upload holiday · rename before upload",
+        ".upload · also works as a reply to media",
+      ] },
+      { title: "Notes", rows: [
+        "· photo, video, audio, document, sticker",
+        "· an existing Drive name is linked, not duplicated",
+        "· needs DRIVE_FOLDER_ID in .env",
+      ] },
+    ],
+  },
   yt: {
     format: ".yt <url> [--<360|480|720|1080|best>]",
-    about: "Download a YouTube video to Google Drive",
-    detail: "Example: .yt https://youtu.be/abc123 --720\nWithout a flag, the bot selects the best available quality.\nAccepted URLs: youtube.com or youtu.be.",
+    about: "youtube video → drive",
+    sections: [
+      { title: "Usage", rows: [
+        ".yt <url> · download video, best quality",
+        ".yt <url> --720 · pick a quality",
+        "· example: .yt https://youtu.be/abc123 --720",
+      ] },
+      { title: "Notes", rows: [
+        "· accepted: youtube.com, *.youtube.com, youtu.be",
+        "· lookalike hosts are rejected before any download",
+        "· the Drive name carries the real resolution",
+        "· needs DRIVE_FOLDER_ID in .env",
+      ] },
+    ],
   },
   ytm: {
     format: ".ytm <url>",
-    about: "Download YouTube audio as MP3 and send it to chat",
-    detail: "Sends a playable MP3 audio message to chat. Google Drive is not required.",
+    about: "youtube audio → chat",
+    sections: [
+      { title: "Usage", rows: [
+        ".ytm <url> · mp3 back to this chat",
+        "· example: .ytm https://youtu.be/abc123",
+      ] },
+      { title: "Notes", rows: [
+        "· always best audio, no quality flag",
+        "· Google Drive is not needed",
+      ] },
+    ],
   },
   anime: {
     format: ".anime <title> [-e <episode>] [-q <quality>] [--info|-i] [--search] [--format-list]",
-    about: "Download anime to Drive or look up a title",
-    detail: "Look up a title: .anime \"naruto\" --info (or -i)\nDownload: .anime \"one piece\" -e 3 -q 720\nList formats: .anime \"one piece\" --format-list\nSearch titles: .anime \"dandadan\" --search\nQuality: best | worst | 360 | 480 | 720 | 1080. Default: best. Short flags such as --720 also work.\nSearch titles come from ani-cli's own index, the same one the downloader uses. Subtitles saved by ani-cli are embedded into the uploaded video when ffmpeg is installed.\nWithout a flag the bot replies with the usage hint instead of downloading. Always quote anime titles. -e|--episode selects one episode or an inclusive range; -q|--quality selects quality. If a quality is unavailable, the bot shows available qualities.",
+    about: "anime → drive",
+    sections: [
+      { title: "Modes", rows: [
+        ".anime \"one piece\" -e 3 · download one episode",
+        ".anime \"one piece\" -e 1-3 · download a range, max 20",
+        ".anime \"naruto\" --info · cover and synopsis",
+        ".anime \"dandadan\" --search · ani-cli title list",
+        ".anime \"one piece\" --format-list · available qualities",
+      ] },
+      { title: "Flags", rows: [
+        "-e, --episode · one episode or an inclusive range",
+        "-q, --quality · best, worst, 360, 480, 720, 1080",
+        "--720 · short form of -q 720",
+        "-i · alias of --info",
+        "--search · list titles, no download",
+        "--format-list · list qualities, no download",
+      ] },
+      { title: "Notes", rows: [
+        "· titles with spaces must be quoted",
+        "· no flag replies with the usage hint, no download",
+        "· search uses ani-cli's own index, same as the downloader",
+        "· ani-cli subtitles are embedded when ffmpeg is installed",
+        "· if a quality is unavailable, the bot lists what it has",
+        "· episode 1 and quality best are the defaults",
+      ] },
+    ],
   },
   tiktok: {
     format: ".tiktok <url> [video|hd|audio|photo]",
-    about: "Download TikTok media",
-    detail: "Default mode: video. Use hd for high quality, audio for sound only, or photo to send each slide.",
+    about: "tiktok media",
+    sections: [
+      { title: "Modes", rows: [
+        ".tiktok <url> · video, default",
+        ".tiktok <url> hd · best quality stream",
+        ".tiktok <url> audio · sound only",
+        ".tiktok <url> photo · every slide, one by one",
+      ] },
+      { title: "Notes", rows: [
+        "· media comes from tikwm.com",
+        "· private or removed posts return an error",
+      ] },
+    ],
   },
-  tts: { format: ".tts <text>", about: "Convert text to English speech" },
-  scan: { format: ".scan <url>", about: "Check URL safety with Google Safe Browsing" },
-  hitung: { format: ".hitung <expression>", about: "Calculate a math expression" },
-  shorturl: { format: ".shorturl <url>", about: "Shorten a URL with TinyURL" },
-  morse: { format: ".morse <text> / .textmorse <code>", about: "Encode text to Morse or decode Morse code" },
-  encode64: { format: ".encode64 <text> / .decode64 <code>", about: "Encode or decode Base64" },
-  biner: { format: ".biner <text> / .binarytext <code> / .textbinary <text>", about: "Convert between text and binary" },
-  sticker: { format: ".sticker / .s", about: "Convert an image to a 512×512 WebP sticker" },
-  help: { format: ".help [command]", about: "Show all commands or help for one command" },
+  tts: {
+    format: ".tts <text>",
+    about: "text to speech",
+    sections: [
+      { title: "Usage", rows: [
+        ".tts hello there · voice note back to chat",
+        "· english voice, google tts",
+      ] },
+    ],
+  },
+  scan: {
+    format: ".scan <url>",
+    about: "url safety check",
+    sections: [
+      { title: "Usage", rows: [
+        ".scan https://example.com · google safe browsing lookup",
+        "· replies safe or suspicious",
+      ] },
+    ],
+  },
+  hitung: {
+    format: ".hitung <expression>",
+    about: "calculator",
+    sections: [
+      { title: "Usage", rows: [
+        ".hitung 12 * (3 + 4) · result back to chat",
+        "· digits, + - * / ( ) % and . only",
+      ] },
+    ],
+  },
+  shorturl: {
+    format: ".shorturl <url>",
+    about: "shorten url",
+    sections: [
+      { title: "Usage", rows: [
+        ".shorturl https://example.com/long/path · tinyurl shortlink",
+      ] },
+    ],
+  },
+  morse: {
+    format: ".morse <text> / .textmorse <code>",
+    about: "morse",
+    sections: [
+      { title: "Usage", rows: [
+        ".morse hello · text to morse",
+        ".textmorse .... . .-.. .-.. --- · morse to text",
+      ] },
+    ],
+  },
+  encode64: {
+    format: ".encode64 <text> / .decode64 <code>",
+    about: "base64",
+    sections: [
+      { title: "Usage", rows: [
+        ".encode64 hello world · text to base64",
+        ".decode64 aGVsbG8= · base64 to text",
+      ] },
+    ],
+  },
+  biner: {
+    format: ".biner <text> / .binarytext <code> / .textbinary <text>",
+    about: "binary",
+    sections: [
+      { title: "Usage", rows: [
+        ".biner hello · text to binary, one row per character",
+        ".textbinary hello · text to one binary line",
+        ".binarytext 01101000 · binary back to text",
+      ] },
+    ],
+  },
+  sticker: {
+    format: ".sticker / .s",
+    about: "image → sticker",
+    sections: [
+      { title: "Usage", rows: [
+        ".sticker · image attached to the message",
+        ".sticker · or reply to an image with .sticker",
+        ".s · alias",
+      ] },
+      { title: "Output", rows: [
+        "· 512×512 webp sticker",
+      ] },
+    ],
+  },
+  help: {
+    format: ".help [command]",
+    about: "help for one command",
+    sections: [
+      { title: "Usage", rows: [
+        ".help · grouped list, same sections as .menu",
+        ".help yt · usage and flags for one command",
+        ".yt --help · same as .help yt",
+      ] },
+    ],
+  },
 };
 
 // Menu and .help share one catalog so the two lists cannot drift apart.
@@ -132,8 +339,9 @@ export function helpText(command) {
   if (!entry) return `✗ No help for \`${command}\`. Try \`.help\`.`;
 
   const heading = `.${entry.format.slice(1)} · ${entry.about}`;
-  if (entry.detail) return `${heading}\n\n${entry.detail}`;
-  return heading;
+  if (!entry.sections?.length) return heading;
+  const blocks = entry.sections.map((section) => [`› ${section.title}`, ...section.rows].join("\n"));
+  return [heading, "", blocks.join("\n\n")].join("\n");
 }
 
 export function allHelp() {

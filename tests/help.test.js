@@ -8,24 +8,29 @@ function capture() {
   return { messages, sendText: async (text) => messages.push(text) };
 }
 
-test(".help yt uses menu-style command heading and concise details", async () => {
+test(".help yt uses menu-style heading and sections", async () => {
   const output = capture();
 
   await help.run({ text: ".help yt", sendText: output.sendText });
 
-  assert.match(output.messages[0], /^\.yt <url> \[--<360\|480\|720\|1080\|best>\] · Download a YouTube video to Google Drive\n\n/);
-  assert.match(output.messages[0], /Example: \.yt https:\/\/youtu\.be\/abc123 --720/);
-  assert.match(output.messages[0], /Without a flag, the bot selects the best available quality\./);
-  assert.match(output.messages[0], /Accepted URLs: youtube\.com or youtu\.be\./);
-  assert.equal((output.messages[0].match(/\.yt <url>/g) || []).length, 1);
+  const text = output.messages[0];
+  assert.match(text, /^\.yt <url> \[--<360\|480\|720\|1080\|best>\] · youtube video → drive\n\n/);
+  assert.match(text, /\n› Usage\n\.yt <url> · download video, best quality/);
+  assert.match(text, /example: \.yt https:\/\/youtu\.be\/abc123 --720/);
+  assert.match(text, /\n› Notes\n/);
+  assert.match(text, /accepted: youtube\.com, \*\.youtube\.com, youtu\.be/);
 });
 
-test(".help list uses menu-style command heading", async () => {
+test(".help list uses menu-style heading and sections", async () => {
   const output = capture();
 
   await help.run({ text: ".help list", sendText: output.sendText });
 
-  assert.equal(output.messages[0], ".list [audio|video|document|photo] · List Drive files with an optional type filter");
+  const lines = output.messages[0].split("\n");
+  assert.equal(lines[0], ".list [audio|video|document|photo] · list files");
+  assert.equal(lines[2], "› Usage");
+  assert.match(output.messages[0], /\.list video · one type only/);
+  assert.match(output.messages[0], /\n› Types\n/);
 });
 
 test(".help lists every command in the same sections as the menu", async () => {
@@ -99,18 +104,21 @@ test(".help deviceinfo no longer exposes removed command", async () => {
   assert.match(output.messages[0], /No help/);
 });
 
-test("help covers anime --quality with the format-list behavior", async () => {
+test("help covers anime modes, flags, and notes", async () => {
   const output = capture();
   await help.run({ text: ".help anime", sendText: output.sendText });
   const text = output.messages[0];
-  assert.match(text, /--quality/);
-  assert.match(text, /--format-list/);
-  assert.match(text, /--search/);
-  assert.match(text, /-e <episode>/);
-  assert.match(text, /-q <quality>/);
-  assert.match(text, /one piece/);
-  assert.match(text, /If a quality is unavailable/);
-  assert.match(text, /Always quote anime titles/);
+  assert.match(text, /\n› Modes\n/);
+  assert.match(text, /\n› Flags\n/);
+  assert.match(text, /\n› Notes\n/);
+  assert.match(text, /-e, --episode · one episode or an inclusive range/);
+  assert.match(text, /-q, --quality · best, worst, 360, 480, 720, 1080/);
+  assert.match(text, /--720 · short form of -q 720/);
+  assert.match(text, /--format-list · list qualities, no download/);
+  assert.match(text, /--search · list titles, no download/);
+  assert.match(text, /"one piece" -e 3 · download one episode/);
+  assert.match(text, /if a quality is unavailable, the bot lists what it has/);
+  assert.match(text, /titles with spaces must be quoted/);
 });
 
 test("<command> --help replies instead of running the command", async () => {
@@ -121,7 +129,7 @@ test("<command> --help replies instead of running the command", async () => {
 
   const output = capture();
   await help.run({ text: ".yt --help", sendText: output.sendText });
-  assert.match(output.messages[0], /^\.yt <url> \[--<360\|480\|720\|1080\|best>\] · Download a YouTube video to Google Drive/);
+  assert.match(output.messages[0], /^\.yt <url> \[--<360\|480\|720\|1080\|best>\] · youtube video → drive/);
 });
 
 test("help text uses no emoji", async () => {
@@ -133,6 +141,22 @@ test("help text uses no emoji", async () => {
   const animeHelp = capture();
   await help.run({ text: ".help anime", sendText: animeHelp.sendText });
   assert.doesNotMatch(animeHelp.messages[0], emoji);
+});
+
+test("every help block uses menu-style unicode rows without em dashes", () => {
+  for (const key of Object.keys(help.HELP)) {
+    const text = help.helpText(key);
+    assert.doesNotMatch(text, /—/, `${key} uses an em dash`);
+    assert.doesNotMatch(text, /[\u{1F300}-\u{1FAFF}]/u, `${key} uses an emoji`);
+    const blocks = text.split("\n\n").slice(1);
+    for (const block of blocks) {
+      const [heading, ...rows] = block.split("\n");
+      assert.match(heading, /^› [A-Z]/, `${key} section heading is not menu style`);
+      for (const row of rows) {
+        assert.match(row, /^[.·-]/, `${key} row is not menu style: ${row}`);
+      }
+    }
+  }
 });
 
 test("every HELP entry has format, description, and menu-style heading", () => {
