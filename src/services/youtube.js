@@ -138,7 +138,14 @@ export async function downloadYoutube(url, mode = "mp4", requestedQuality = "bes
   const command = youtubeDlCommand(youtubedl);
   await fs.mkdir(PATHS.downloads, { recursive: true });
 
-  const common = { noWarnings: true, noPlaylist: true };
+  // YouTube's player needs a JS runtime to solve its challenge; without one yt-dlp
+  // reports "Requested format is not available" even with valid cookies.
+  const common = {
+    noWarnings: true,
+    noPlaylist: true,
+    jsRuntimes: process.env.YOUTUBE_JS_RUNTIME || "node",
+    remoteComponents: "ejs:github",
+  };
   const cookies = activeCookies();
   if (cookies) common.cookies = cookies.file;
   if (process.env.YOUTUBE_PROXY) common.proxy = process.env.YOUTUBE_PROXY;
