@@ -26,7 +26,7 @@ Runtime files, all under `data/` and ignored by Git: `data/auth_info/` (session)
 
 ## Environment
 
-Six variables are read by the code:
+Eight variables are read by the code:
 
 ```dotenv
 # Bot phone number for pairing-code login; empty means QR login
@@ -37,6 +37,12 @@ DRIVE_FOLDER_ID=
 
 # Python interpreter used to run the bundled yt-dlp binary (default: python3.11)
 YOUTUBE_DL_PYTHON=
+
+# Absolute path to a yt-dlp binary; wins over the bundled one
+YTDLP_BIN=
+
+# Cookies export for YouTube bot checks (Netscape format)
+YOUTUBE_COOKIES=
 
 # ani-cli executable, menu shim, and download timeout in ms
 ANI_CLI_BIN=ani-cli
@@ -106,7 +112,9 @@ A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`
 
 `.ytm` takes only a URL and always produces an MP3: `downloadYoutube(url, "mp3", "best")`, then `sock.sendMessage` with `audio`, `mimetype: audio/mpeg`, `fileName`, and `ptt: false`. The audio message comes back to the chat, not Drive, so no folder is needed.
 
-Both handlers delete the temporary download in a `finally` block, and both turn yt-dlp exit code 1 into "YouTube rejected the download or the format is unavailable" instead of leaking stderr.
+Both handlers delete the temporary download in a `finally` block, and both turn yt-dlp exit code 1 into "YouTube rejected the download or the format is unavailable" instead of leaking stderr. `downloadYoutube` tries three format selectors in order (strict mp4, then `bv*+ba/b`, then a single best stream) and clears partial files between attempts, because Shorts and some uploads only expose one codec family.
+
+The bundled yt-dlp ages out as YouTube changes its player. `YTDLP_BIN=/path/to/yt-dlp` replaces it without touching `node_modules`, and `YOUTUBE_COOKIES=/path/to/cookies.txt` passes a Netscape cookies export for the "Sign in to confirm you're not a bot" check. The reply now carries one `· reason: <last yt-dlp line>` line so a failure names its cause instead of guessing.
 
 ## Anime command
 
@@ -160,7 +168,7 @@ npm test
 # same as: node --test tests/drive.test.js tests/yt.test.js tests/anime.test.js tests/help.test.js tests/router.test.js
 ```
 
-94 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anime.test.js` covers argument parsing, the usage hint when no flag is given, `--info` and `--search` without downloads, the ani-cli menu capture and title parsing, subtitle discovery and muxing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the removal of `.anidl` and `.getani`. `tests/help.test.js` covers the `.help` listing, the shared menu catalog, menu-style sections for per-command help, aliases, `<command> --help`, the anime help entry, and emoji/em-dash-free help text. `tests/router.test.js` covers the unknown-message reply and removed-command fallbacks. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer; Node 12 rejects `--test`.
+98 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the yt-dlp command resolver and failure detail, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anime.test.js` covers argument parsing, the usage hint when no flag is given, `--info` and `--search` without downloads, the ani-cli menu capture and title parsing, subtitle discovery and muxing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the removal of `.anidl` and `.getani`. `tests/help.test.js` covers the `.help` listing, the shared menu catalog, menu-style sections for per-command help, aliases, `<command> --help`, the anime help entry, and emoji/em-dash-free help text. `tests/router.test.js` covers the unknown-message reply and removed-command fallbacks. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer; Node 12 rejects `--test`.
 
 ## Notes
 

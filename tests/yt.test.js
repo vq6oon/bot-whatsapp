@@ -6,6 +6,12 @@ import * as ytm from "../handler/ytm.js";
 import * as menu from "../handler/menu.js";
 import { probeVideoQuality } from "../src/services/youtube.js";
 import { qualityLabelFromSize } from "../src/utils/filenames.js";
+import {
+  FORMAT_PREFERENCE,
+  youtubeDlCommand,
+  youtubeDownloadError,
+  ytdlpFailureDetail,
+} from "../src/services/youtube.js";
 
 function capture() {
   const messages = [];
@@ -340,4 +346,46 @@ test("menu advertises .yt, .ytm and points to per-command help", async () => {
   assert.match(sent.caption, /\.help anime/);
   assert.doesNotMatch(sent.caption, /\.ytdl/);
   assert.doesNotMatch(sent.caption, /mp3/);
+});
+test("youtubeDlCommand prefers YTDLP_BIN over the python wrapper", () => {
+  const original = process.env.YTDLP_BIN;
+  const bundled = { constants: { YOUTUBE_DL_PATH: "/bundle/yt-dlp" } };
+  try {
+    process.env.YTDLP_BIN = "/usr/local/bin/yt-dlp";
+    assert.deepEqual(youtubeDlCommand(bundled), { file: "/usr/local/bin/yt-dlp", prefix: [] });
+  } finally {
+    if (original === undefined) delete process.env.YTDLP_BIN;
+    else process.env.YTDLP_BIN = original;
+  }
+  assert.deepEqual(youtubeDlCommand(bundled), {
+    file: process.env.YOUTUBE_DL_PYTHON || "python3.11",
+    prefix: ["/bundle/yt-dlp"],
+  });
+});
+
+test("youtubeDownloadError keeps the friendly line and adds the yt-dlp reason", () => {
+  const rejected = Object.assign(new Error("Command failed"), {
+    code: 1,
+    stderr: "[youtube] abc: Sign in to confirm you are not a bot\nERROR: [youtube] abc: Sign in to confirm you are not a bot. Use --cookies",
+  });
+  const text = youtubeDownloadError(rejected);
+  assert.match(text, /^✗ YouTube rejected the download or the format is unavailable\./);
+  assert.match(text, /\n· reason: \[youtube\] abc: Sign in to confirm/);
+
+  const missing = Object.assign(new Error("spawn python3.11 ENOENT"), { code: "ENOENT" });
+  assert.match(youtubeDownloadError(missing), /yt-dlp could not run/);
+});
+
+test("ytdlpFailureDetail strips ERROR prefixes and download noise", () => {
+  const error = Object.assign(new Error("x"), {
+    stderr: "[download]  10% of 1MiB\nERROR: unable to extract player\n",
+  });
+  assert.equal(ytdlpFailureDetail(error), "unable to extract player");
+  assert.equal(ytdlpFailureDetail(new Error("plain failure")), "plain failure");
+});
+
+test("FORMAT_PREFERENCE ends with a fallback that accepts any stream", () => {
+  assert.ok(FORMAT_PREFERENCE.length >= 2);
+  assert.equal(FORMAT_PREFERENCE.at(-1), "b");
+  assert.ok(FORMAT_PREFERENCE[0].includes("ext=mp4"));
 });

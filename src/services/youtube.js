@@ -9,6 +9,34 @@ import { qualityLabelFromSize } from "../utils/filenames.js";
 const execFileAsync = promisify(execFile);
 export const MAX_DRIVE_UPLOAD_BYTES = 50 * 1024 * 1024;
 export const QUALITY_FLAGS = new Set(["best", "360", "480", "720", "1080"]);
+// Tried in order: strict mp4 first, then anything, then a single best stream.
+export const FORMAT_PREFERENCE = [
+  "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+  "bv*+ba/b",
+  "b",
+];
+
+// YTDLP_BIN wins over the python wrapper so a current yt-dlp can replace the bundled one.
+export function youtubeDlCommand(youtubedl) {
+  const explicit = process.env.YTDLP_BIN;
+  if (explicit) return { file: explicit, prefix: [] };
+  return {
+    file: process.env.YOUTUBE_DL_PYTHON || "python3.11",
+    prefix: [youtubedl.constants.YOUTUBE_DL_PATH],
+  };
+}
+
+export function ytdlpFailureDetail(error) {
+  const text = String(error?.stderr || error?.stdout || error?.message || "");
+  const lines = text
+    .replace(/\x1b\[[0-9;]*[A-Za-z]/g, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^\[(download|info|debug)\]/i.test(line));
+  const last = lines.at(-1) || "";
+  return last.replace(/^ERROR:\s*/i, "").replace(/\s+/g, " ").slice(0, 180);
+}
 export const YOUTUBE_FORMAT_HINT = ".yt <url> --<360|480|720|1080|best>";
 
 export function isYoutubeUrl(value) {
@@ -22,10 +50,15 @@ export function isYoutubeUrl(value) {
 }
 
 export function youtubeDownloadError(error) {
-  if (error?.code === 1) {
-    return "✗ YouTube rejected the download or the format is unavailable. Try another public video link.";
+  const detail = ytdlpFailureDetail(error);
+  const reason = detail ? `\n· reason: ${detail}` : "";
+  if (error?.code === "ENOENT") {
+    return "✗ yt-dlp could not run. Install yt-dlp, or point YTDLP_BIN at it." + reason;
   }
-  return "✗ Failed to download media from YouTube. Try again later.";
+  if (error?.code === 1 || error?.code === "1") {
+    return "✗ YouTube rejected the download or the format is unavailable. Try another public video link." + reason;
+  }
+  return "✗ Failed to download media from YouTube. Try again later." + reason;
 }
 
 export function parseYoutubeMetadata(output) {
@@ -55,46 +88,52 @@ export async function probeVideoQuality(filePath, runner = execFileAsync) {
 
 export async function downloadYoutube(url, mode = "mp4", requestedQuality = "best") {
   const { default: youtubedl } = await import("youtube-dl-exec");
-  const python = process.env.YOUTUBE_DL_PYTHON || "python3.11";
-  const binaryPath = youtubedl.constants.YOUTUBE_DL_PATH;
+  const command = youtubeDlCommand(youtubedl);
   await fs.mkdir(PATHS.downloads, { recursive: true });
 
-  const metadataOptions = {
-    print: ["%(title)j"],
-    noWarnings: true,
-    noPlaylist: true,
-    skipDownload: true,
-  };
-  const { stdout: metadataOutput } = await execFileAsync(python, [
-    binaryPath,
-    url,
-    ...youtubedl.args(metadataOptions),
-  ], { maxBuffer: 1024 * 1024 });
+  const common = { noWarnings: true, noPlaylist: true };
+  if (process.env.YOUTUBE_COOKIES) common.cookies = process.env.YOUTUBE_COOKIES;
+
+  const runYtdlp = (args, execOptions) =>
+    execFileAsync(command.file, [...command.prefix, url, ...youtubedl.args(args)], execOptions);
+
+  const { stdout: metadataOutput } = await runYtdlp(
+    { ...common, print: ["%(title)j"], skipDownload: true },
+    { maxBuffer: 1024 * 1024 },
+  );
   const metadata = parseYoutubeMetadata(metadataOutput);
   const prefix = `youtube-${randomUUID()}`;
   const outputTemplate = path.join(PATHS.downloads, `${prefix}.%(ext)s`);
-  const options = {
-    noWarnings: true,
-    noPlaylist: true,
-    restrictFilenames: true,
-    maxFilesize: "50G",
-    output: outputTemplate,
+
+  const cleanupPartials = async () => {
+    const partials = await fs.readdir(PATHS.downloads).catch(() => []);
+    await Promise.all(partials
+      .filter((name) => name.startsWith(`${prefix}.`))
+      .map((name) => fs.rm(path.join(PATHS.downloads, name), { force: true })));
   };
-  if (mode === "mp3") {
-    options.extractAudio = true;
-    options.audioFormat = "mp3";
-  } else {
-    options.format = requestedQuality === "best"
-      ? "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
-      : `bestvideo[height<=?${requestedQuality}][ext=mp4]+bestaudio[ext=m4a]/best[height<=?${requestedQuality}][ext=mp4]/best[height<=?${requestedQuality}]`;
-  }
 
   try {
-    await execFileAsync(python, [
-      binaryPath,
-      url,
-      ...youtubedl.args(options),
-    ], { maxBuffer: 4 * 1024 * 1024 });
+    let lastError = null;
+    const formats = mode === "mp3" ? [null] : FORMAT_PREFERENCE;
+    for (const format of formats) {
+      const options = { ...common, restrictFilenames: true, maxFilesize: "50G", output: outputTemplate };
+      if (mode === "mp3") {
+        options.extractAudio = true;
+        options.audioFormat = "mp3";
+      } else {
+        options.format = format;
+      }
+      try {
+        await runYtdlp(options, { maxBuffer: 4 * 1024 * 1024 });
+        lastError = null;
+        break;
+      } catch (error) {
+        lastError = error;
+        await cleanupPartials();
+      }
+    }
+    if (lastError) throw lastError;
+
     const candidates = (await fs.readdir(PATHS.downloads))
       .filter((name) => name.startsWith(`${prefix}.`));
     if (candidates.length !== 1) {
@@ -115,10 +154,7 @@ export async function downloadYoutube(url, mode = "mp4", requestedQuality = "bes
 
     return { title, fileName: `${title}.${extension}`, mimeType, size: stat.size, filePath, quality };
   } catch (error) {
-    const partialFiles = await fs.readdir(PATHS.downloads).catch(() => []);
-    await Promise.all(partialFiles
-      .filter((name) => name.startsWith(`${prefix}.`))
-      .map((name) => fs.rm(path.join(PATHS.downloads, name), { force: true })));
+    await cleanupPartials();
     throw error;
   }
 }
