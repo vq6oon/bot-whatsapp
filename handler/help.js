@@ -3,7 +3,7 @@ import { BOT_NAME } from "../src/config.js";
 export const name = "help";
 
 // One entry per command: format line + one-line behavior note.
-// Namespace styling: duplicate subcommands (encode64/biner, tebak) share owner.
+// Namespace styling: duplicate subcommands (encode64/biner) share owner.
 export const HELP = {
   menu: { format: ".menu", about: "Show this menu" },
   info: { format: ".info", about: "Bot name, developer, framework, version" },
@@ -32,7 +32,6 @@ export const HELP = {
   morse: { format: ".morse <text> / .textmorse <code>", about: "Encode/decode Morse" },
   encode64: { format: ".encode64 <text> / .decode64 <code>", about: "Encode/decode Base64" },
   biner: { format: ".biner <text> / .binarytext <code> / .textbinary <text>", about: "Binary conversion" },
-  tebak: { format: ".tebakhewan / .tebak <answer>", about: "Animal guessing game" },
   sticker: { format: ".sticker / .s", about: "Image to 512x512 WebP sticker" },
   help: { format: ".help [command]", about: "Show this help or one command's help" },
 };
@@ -46,7 +45,6 @@ const OWNERS = {
   morse: "morse", textmorse: "morse",
   encode64: "encode64", decode64: "encode64",
   biner: "biner", textbinary: "biner", binarytext: "biner",
-  tebakhewan: "tebak", tebak: "tebak",
   sticker: "sticker", s: "sticker",
   help: "help",
 };

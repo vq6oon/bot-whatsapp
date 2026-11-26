@@ -13,7 +13,6 @@ import * as getani from "../handler/getani.js";
 import * as anidl from "../handler/anidl.js";
 import * as shorturl from "../handler/shorturl.js";
 import * as deviceinfo from "../handler/deviceinfo.js";
-import * as tebak from "../handler/tebak.js";
 import * as morse from "../handler/morse.js";
 import * as encode from "../handler/encode.js";
 import * as binary from "../handler/binary.js";
@@ -38,7 +37,6 @@ const HANDLERS = [
   anidl,
   shorturl,
   deviceinfo,
-  tebak,
   morse,
   encode,
   binary,

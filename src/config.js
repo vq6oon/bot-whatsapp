@@ -19,5 +19,3 @@ export const DRIVE = {
   tokenPath: "credentials/token.json",
   credentialsPath: "credentials/credentials.json",
 };
-
-export const GAME_TIMEOUT_MS = 60_000;

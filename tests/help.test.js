@@ -14,10 +14,12 @@ test(".help lists every command", async () => {
   for (const command of [
     ".menu", ".checkdrive", ".list", ".upload", ".yt", ".ytm", ".anidl",
     ".getani", ".tiktok", ".tts", ".scan", ".hitung", ".shorturl",
-    ".deviceinfo", ".morse", ".encode64", ".biner", ".tebakhewan", ".sticker",
+    ".deviceinfo", ".morse", ".encode64", ".biner", ".sticker",
   ]) {
     assert.ok(text.includes(command), `missing ${command}`);
   }
+  assert.ok(!text.includes(".tebakhewan"));
+  assert.ok(!text.includes(".tebak"));
 });
 
 test(".help <command> resolves aliases to one owner", async () => {
@@ -28,6 +30,14 @@ test(".help <command> resolves aliases to one owner", async () => {
   const output2 = capture();
   await help.run({ text: ".help s", sendText: output2.sendText });
   assert.match(output2.messages[0], /\.sticker/);
+});
+
+test(".help tebak no longer exposes removed guessing game", async () => {
+  const output = capture();
+
+  await help.run({ text: ".help tebak", sendText: output.sendText });
+
+  assert.match(output.messages[0], /No help/);
 });
 
 test("help covers anidl --quality with the format-list behavior", async () => {
