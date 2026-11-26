@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as help from "../handler/help.js";
+import * as menu from "../handler/menu.js";
 
 function capture() {
   const messages = [];
@@ -27,23 +28,49 @@ test(".help list uses menu-style command heading", async () => {
   assert.equal(output.messages[0], ".list [audio|video|document|photo] · List Drive files with an optional type filter");
 });
 
-test(".help lists every command", async () => {
+test(".help lists every command in the same sections as the menu", async () => {
   const output = capture();
   await help.run({ text: ".help", sendText: output.sendText });
   const text = output.messages[0];
-  assert.ok(text.startsWith("Commands for Kamui-Bot\n\n"));
-  assert.match(text, /\.menu · Show the command menu/);
-  assert.match(text, /Type `\.help <command>` for more details\./);
+  assert.ok(text.startsWith("Kamui-Bot · v3.0.0\n\n"));
+  assert.match(text, /Type `\.help <command>` for usage and flags\./);
+  for (const section of ["Info", "Download", "Drive", "Search", "Tools"]) {
+    assert.ok(text.includes(`› ${section}`), `missing section ${section}`);
+  }
   for (const command of [
-    ".menu", ".checkdrive", ".list", ".upload", ".yt", ".ytm", ".anime",
-    ".tiktok", ".tts", ".scan", ".hitung", ".shorturl",
-    ".morse", ".encode64", ".biner", ".sticker",
+    ".help [command]", ".info", ".rules", ".checkdrive", ".list [type]",
+    ".upload [name]", ".yt <url>", ".ytm <url>", ".anime <title>",
+    ".anime <title> --info", ".tiktok <url>", ".tts <text>", ".scan <url>",
+    ".hitung <expression>", ".shorturl <url>", ".morse", ".encode64",
+    ".biner", ".sticker",
   ]) {
     assert.ok(text.includes(command), `missing ${command}`);
   }
-  assert.ok(!text.includes(".tebakhewan"));
-  assert.ok(!text.includes(".tebak"));
-  assert.ok(!text.includes(".deviceinfo"));
+  assert.doesNotMatch(text, /\.tebak/);
+  assert.doesNotMatch(text, /\.deviceinfo/);
+});
+
+test("the menu and .help share one catalog", async () => {
+  const menuOutput = capture();
+  await menu.run({
+    sock: { sendMessage: async (_from, message) => { menuOutput.messages.push(message); } },
+    from: "chat@s.whatsapp.net",
+  });
+  const caption = menuOutput.messages[0].caption;
+
+  const helpOutput = capture();
+  await help.run({ text: ".help", sendText: helpOutput.sendText });
+  const helpTextOutput = helpOutput.messages[0];
+
+  for (const line of help.catalogLines()) {
+    assert.ok(caption.includes(line), `menu missing: ${line}`);
+    assert.ok(helpTextOutput.includes(line), `.help missing: ${line}`);
+  }
+  for (const section of help.SECTIONS) {
+    for (const row of section.rows) {
+      assert.ok(help.HELP[row.help], `${row.short} points at a missing help entry`);
+    }
+  }
 });
 
 test(".help <command> resolves aliases to one owner", async () => {

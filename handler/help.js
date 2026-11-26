@@ -1,4 +1,4 @@
-import { BOT_NAME } from "../src/config.js";
+import { BOT_NAME, BOT_VERSION } from "../src/config.js";
 
 export const name = "help";
 
@@ -42,6 +42,68 @@ export const HELP = {
   help: { format: ".help [command]", about: "Show all commands or help for one command" },
 };
 
+// Menu and .help share one catalog so the two lists cannot drift apart.
+export const SECTIONS = [
+  {
+    title: "Info",
+    rows: [
+      { short: ".help [command]", label: "help for one command", help: "help" },
+      { short: ".info", label: "bot information", help: "info" },
+      { short: ".rules", label: "usage rules", help: "rules" },
+    ],
+  },
+  {
+    title: "Download",
+    rows: [
+      { short: ".yt <url>", label: "youtube video → drive", help: "yt", menuHelp: true },
+      { short: ".ytm <url>", label: "youtube audio → chat", help: "ytm", menuHelp: true },
+      { short: ".anime <title>", label: "anime → drive", help: "anime", menuHelp: true },
+      { short: ".tiktok <url>", label: "tiktok media", help: "tiktok", menuHelp: true },
+    ],
+  },
+  {
+    title: "Drive",
+    rows: [
+      { short: ".checkdrive", label: "folder status", help: "checkdrive" },
+      { short: ".list [type]", label: "list files", help: "list", menuHelp: true },
+      { short: ".upload [name]", label: "upload media", help: "upload" },
+    ],
+  },
+  {
+    title: "Search",
+    rows: [
+      { short: ".anime <title> --info", label: "anime info", help: "anime", menuHelp: true },
+      { short: ".scan <url>", label: "url safety check", help: "scan" },
+      { short: ".shorturl <url>", label: "shorten url", help: "shorturl" },
+    ],
+  },
+  {
+    title: "Tools",
+    rows: [
+      { short: ".tts <text>", label: "text to speech", help: "tts" },
+      { short: ".hitung <expression>", label: "calculator", help: "hitung" },
+      { short: ".morse / .textmorse", label: "morse", help: "morse" },
+      { short: ".encode64 / .decode64", label: "base64", help: "encode64" },
+      { short: ".biner / .binarytext", label: "binary", help: "biner" },
+      { short: ".sticker / .s", label: "image → sticker", help: "sticker" },
+    ],
+  },
+];
+
+export function catalogLines({ helpLinks = false } = {}) {
+  const lines = [];
+  for (const section of SECTIONS) {
+    lines.push(`› ${section.title}`);
+    for (const row of section.rows) {
+      const suffix = helpLinks && row.menuHelp ? ` (.help ${row.help})` : "";
+      lines.push(`${row.short} · ${row.label}${suffix}`);
+    }
+    lines.push("");
+  }
+  if (lines.at(-1) === "") lines.pop();
+  return lines;
+}
+
 // Command prefixes that answer to the same help block (e.g. .encode64/.decode64).
 const OWNERS = {
   menu: "menu", info: "info", rules: "rules", checkdrive: "checkdrive",
@@ -75,10 +137,13 @@ export function helpText(command) {
 }
 
 export function allHelp() {
-  const rows = Object.values(HELP).map(
-    (entry) => `.${entry.format.slice(1)} · ${entry.about}`,
-  );
-  return `Commands for ${BOT_NAME}\n\n${rows.join("\n")}\n\nType \`.help <command>\` for more details.`;
+  return [
+    `${BOT_NAME} · ${BOT_VERSION}`,
+    "",
+    ...catalogLines(),
+    "",
+    "Type `.help <command>` for usage and flags.",
+  ].join("\n");
 }
 
 export async function run({ text, sendText }) {
