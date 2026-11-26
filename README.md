@@ -8,7 +8,7 @@ WhatsApp bot built on Baileys v6 and Node.js. It downloads media (YouTube, TikTo
 - `ffmpeg` on `PATH`; yt-dlp uses it to extract MP3 and mux MP4
 - `python3.11` on `PATH`; `youtube-dl-exec` runs as `python3.11 <youtube-dl-binary>`, override with `YOUTUBE_DL_PYTHON`
 - Google OAuth client and token for the Drive commands (see Drive setup)
-- `ani-cli` on `PATH` for `.anidl`, plus a `yt-dlp` executable on `PATH` that runs under Python 3.11 (ani-cli prefers it over the system `ffmpeg`)
+- `ani-cli` on `PATH` for `.anime`, plus a `yt-dlp` executable on `PATH` that runs under Python 3.11 (ani-cli prefers it over the system `ffmpeg`)
 - `tools/ani-pick-first` installed as `/usr/local/bin/ani-pick-first` so ani-cli can pick the first result without an interactive menu
 
 ## Install and run
@@ -44,7 +44,7 @@ ANI_CLI_MENU=/usr/local/bin/ani-pick-first
 ANI_DL_TIMEOUT_MS=900000
 ```
 
-`DRIVE_FOLDER_ID` is required by every Drive command. When it is empty, `.checkdrive`, `.list`, `.upload`, and `.yt` reply with a configuration warning instead of calling the API. `.ytm` needs no folder because it returns the MP3 to the chat. `.anidl` needs it because the downloaded episode is streamed to Drive.
+`DRIVE_FOLDER_ID` is required by every Drive command. When it is empty, `.checkdrive`, `.list`, `.upload`, and `.yt` reply with a configuration warning instead of calling the API. `.ytm` needs no folder because it returns the MP3 to the chat. `.anime` needs it for downloads because the episode is streamed to Drive.
 
 ## Google Drive setup
 
@@ -73,8 +73,7 @@ One handler runs per message: `src/router.js` walks `HANDLERS` in order and exec
 | `.tts <text>` | Google TTS voice note (`gtts`, English) |
 | `.scan <url>` | Google Safe Browsing diagnostic lookup |
 | `.hitung <expression>` | Calculator; input is restricted to digits, operators, parentheses, space, `%`, `.` |
-| `.getani <title>` | Anime search via `api.tenrai.org`, sends the cover image when available |
-| `.anidl <title> [-e <episode>] [-q <quality>] [--format-list] [--search]` | Download anime episodes with ani-cli (`<q>` = best, worst, or offered `360`/`480`/`720`/`1080`; `--720` also works) and stream them to Drive; quote anime titles consistently, `-e 1-3` downloads episodes 1-3 (max 20), `-q` selects quality, `--format-list` only lists available qualities, `--search` lists anime titles instead of downloading, default episode 1, quality `best` |
+| `.anime <title> [-e <episode>] [-q <quality>] [--format-list] [--search] [--info\|-i]` | Download anime episodes with ani-cli (`<q>` = best, worst, or offered `360`/`480`/`720`/`1080`; `--720` also works) and stream them to Drive. `--info` (or `-i`) looks up a title and sends its cover and synopsis, `--search` lists anime titles, `--format-list` lists the qualities of one episode, all without downloading. Titles must be quoted, `-e 1-3` downloads episodes 1-3 (max 20), quality defaults to `best`, episode defaults to `1`. Without any flag the bot replies with the usage hint |
 | `.shorturl <url>` | TinyURL shortlink |
 | `.morse <text>` / `.textmorse <code>` | Morse encode/decode |
 | `.encode64 <text>` / `.decode64 <code>` | Base64 encode/decode |
@@ -94,7 +93,7 @@ src/message-filter.js   skips own messages and @channel traffic
 src/reconnect.js        2 second reconnect, stops on loggedOut
 src/services/           drive.js, youtube.js, media.js (Baileys media download), anime.js (search + ani-cli runner)
 src/utils/morse.js      Morse tables
-handler/                one module per command (yt.js, ytm.js, getani.js, anidl.js are separate), each exporting name, match, run
+handler/                one module per command (yt.js and ytm.js are separate), each exporting name, match, run
 tests/                  node:test suites, no WhatsApp session needed
 tools/panel.js          optional browser editor for bot.js, port 3000
 ```
@@ -109,21 +108,27 @@ A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`
 
 Both handlers delete the temporary download in a `finally` block, and both turn yt-dlp exit code 1 into "YouTube rejected the download or the format is unavailable" instead of leaking stderr.
 
-## Anime commands
+## Anime command
 
-`.getani <title>` is the renamed anime search command. `.anime` is gone.
+One command covers download, info, and search. `.anidl` and `.getani` are gone; both now get the unknown-command reply.
 
-`.anidl <title> [-e <episode>] [-q <quality>] [--format-list] [--search]` runs ani-cli in non-interactive download mode: `-d -S 1 -e <n> -q <q> <title>` once per episode. `-S 1` takes the first search result, `-e` chooses one episode or an inclusive range (default `1`, max 20 episodes), and the quality defaults to `best`. Quote anime titles consistently: `.anidl "one piece" -e 3 -q 720`. Quality can be given either as `-q 720` or as `--720`. The long forms `--episode` and `--quality` are accepted as aliases of `-e` and `-q`. A bare `720`, an unknown flag, an invalid range, `-e`/`-q` without a value, an unterminated quote, and a title with no words are rejected before running ani-cli. `--format-list` skips the download and Drive entirely: it probes the first episode and replies with `Available formats` plus a ready-to-copy `-q` command. `--search` skips the download and Drive entirely too: it searches anime titles and replies with available titles, so the user can pick the right movie, season 2, or season 3 before running the download command.
+`.anime <title> [-e <episode>] [-q <quality>] [--info|-i] [--search] [--format-list]` runs ani-cli in non-interactive download mode: `-d -S 1 -e <n> -q <q> <title>` once per episode. `-S 1` takes the first search result, `-e` chooses one episode or an inclusive range (default `1`, max 20 episodes), and the quality defaults to `best`.
+
+Flags work in any position, and the examples put the title first: `.anime "one piece" -e 3 -q 720`, `.anime "naruto" --info`, `.anime "dandadan" --search`. Quality can be given as `-q 720` or as `--720`; `--episode` and `--quality` are aliases of `-e` and `-q`. The bot rejects a bare `720`, an unknown flag, an invalid range, `-e`/`-q` without a value, an unterminated quote, and a title with no words before ani-cli runs.
+
+A message with no flag at all downloads nothing. The bot replies with `Format: .anime <title> ...` and `Details: .help anime`, so someone who only wants to read about a title cannot start a download by accident.
+
+`--info` (or `-i`) searches `api.tenrai.org`, then sends the cover image with episodes, score, air date, and synopsis. A title with no match replies `No anime found for <query>. Try: .anime "<query>" --search`. `--format-list` probes the first episode and replies with `Available formats` plus a ready-to-copy `-q` command. `--search` lists matching titles so the user can pick the right movie, season 2, or season 3 before downloading. Both `--search` and `--format-list` skip the download and Drive.
 
 Before downloading, the bot probes ani-cli in `debug` player mode to read the offered streams (the `All links:` block). If the requested quality is not among them it fails fast with the list, e.g. requesting `--720` on a series that only offers 1080p replies:
 
 ```
 ✗ Quality 720 is not available for one piece episode 1.
 Available qualities: 1080p
-Try: .anidl "one piece" -e 1 -q 1080
+Try: .anime "one piece" -e 1 -q 1080
 ```
 
-The downloader sets `ANI_CLI_PLAYER=/bin/true` (ani-cli checks for a player even in download mode), `ANI_CLI_MENU=/usr/local/bin/ani-pick-first` (picks the first row instead of opening fzf), and `ANI_CLI_DOWNLOAD_DIR=data/downloads/anidl/<timestamp>-<uuid>`. Each run gets its own directory, so leftover files cannot make yt-dlp skip the download. The bot uploads the freshest `.mp4`, `.mkv`, `.webm`, or `.m4v` to `DRIVE_FOLDER_ID`, replies with the Drive link, then deletes the directory. A missing binary becomes "ani-cli is not installed on the server", and a killed/timeout run becomes "Anime download timed out".
+The downloader sets `ANI_CLI_PLAYER=/bin/true` (ani-cli checks for a player even in download mode), `ANI_CLI_MENU=/usr/local/bin/ani-pick-first` (picks the first row instead of opening fzf), and `ANI_CLI_DOWNLOAD_DIR=data/downloads/anime/<timestamp>-<uuid>`. Each run gets its own directory, so leftover files cannot make yt-dlp skip the download. The bot uploads the freshest `.mp4`, `.mkv`, `.webm`, or `.m4v` to `DRIVE_FOLDER_ID`, replies with the Drive link, then deletes the directory. A missing binary becomes "ani-cli is not installed on the server", and a killed/timeout run becomes "Anime download timed out".
 
 Install the host-side pieces once:
 
@@ -139,7 +144,7 @@ If `yt-dlp` is not on `PATH`, ani-cli falls back to `ffmpeg`; in that case the f
 
 - `src/services/drive.js` reads `credentials/credentials.json` (installed or web client) and `credentials/token.json`, then builds a Drive v3 client per call. Expired tokens are refreshed by the `googleapis` client.
 - `uploadToDrive` accepts a file path (streamed with `createReadStream`) or a buffer (`Readable.from`). It looks for the exact name in `DRIVE_FOLDER_ID` first: a match is returned as-is with `reused: true` and its link is reported, with no `(2)` suffix and no new file. Only a free name is uploaded. Sharing permissions are never changed.
-- `.anidl` labels output with the selected quality. `.yt` probes the downloaded file with `ffprobe` and labels it with the actual short-edge resolution (`clip (360p).mp4`), so a `--1080` request that resolves to 360p is reported honestly. `.ytm` sends audio in chat and does not use Drive.
+- `.anime` labels output with the selected quality. `.yt` probes the downloaded file with `ffprobe` and labels it with the actual short-edge resolution (`clip (360p).mp4`), so a `--1080` request that resolves to 360p is reported honestly. `.ytm` sends audio in chat and does not use Drive.
 - `listDriveFiles` walks `nextPageToken` in 100-file pages ordered by name; `getDriveQuota` reports usage, limit, and free space in GB.
 - `.list` groups files by extension into audio, video, document, and photo.
 - 401/403/404 responses are translated into OAuth and folder-permission hints.
@@ -148,10 +153,10 @@ If `yt-dlp` is not on `PATH`, ani-cli falls back to `ffmpeg`; in that case the f
 
 ```bash
 npm test
-# same as: node --test tests/drive.test.js tests/yt.test.js tests/anidl.test.js tests/help.test.js tests/router.test.js
+# same as: node --test tests/drive.test.js tests/yt.test.js tests/anime.test.js tests/help.test.js tests/router.test.js
 ```
 
-83 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anidl.test.js` covers argument parsing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, the anime title search with its available-titles response, and the `.anime` → `.getani` rename. `tests/help.test.js` covers the `.help` listing, menu-style help format, aliases, `<command> --help`, and the anidl help entry. `tests/router.test.js` covers the unknown-message reply and removed-command fallbacks. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer; Node 12 rejects `--test`.
+87 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anime.test.js` covers argument parsing, the usage hint when no flag is given, `--info` and `--search` without downloads, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, and the removal of `.anidl` and `.getani`. `tests/help.test.js` covers the `.help` listing, menu-style help format, aliases, `<command> --help`, the anime help entry, and emoji-free help text. `tests/router.test.js` covers the unknown-message reply and removed-command fallbacks. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer; Node 12 rejects `--test`.
 
 ## Notes
 
