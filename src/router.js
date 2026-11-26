@@ -54,5 +54,10 @@ export async function dispatch(ctx) {
     await handler.run(ctx);
     return handler.name;
   }
+
+  if (typeof ctx.text === "string" && ctx.text.trim()) {
+    await ctx.sendText("Perintah tidak dikenal. Buka .menu untuk melihat menu.");
+  }
+
   return null;
 }

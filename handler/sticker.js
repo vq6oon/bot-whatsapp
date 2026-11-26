@@ -1,4 +1,3 @@
-import sharp from "sharp";
 import { downloadQuotedBuffer, downloadOwnBuffer } from "../src/services/media.js";
 
 export const name = "sticker";
@@ -20,6 +19,7 @@ export async function run({ sock, msg, from, quoted, quotedContext, sendText }) 
 
   if (!buffer) return sendText("✗ Send or reply to an image.");
 
+  const sharp = (await import("sharp")).default;
   const webp = await sharp(buffer).resize(512, 512).webp().toBuffer();
   await sock.sendMessage(from, { sticker: webp });
 }
