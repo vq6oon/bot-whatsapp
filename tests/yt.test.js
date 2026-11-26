@@ -337,7 +337,7 @@ test("menu advertises .yt, .ytm and points to per-command help", async () => {
   assert.match(sent.caption, /\.ytm <url>/);
   assert.match(sent.caption, /\.tiktok <url>/);
   assert.match(sent.caption, /\.help yt/);
-  assert.match(sent.caption, /\.help anidl/);
+  assert.match(sent.caption, /\.help anime/);
   assert.doesNotMatch(sent.caption, /\.ytdl/);
   assert.doesNotMatch(sent.caption, /mp3/);
 });

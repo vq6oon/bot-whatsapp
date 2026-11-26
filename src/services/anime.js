@@ -12,9 +12,9 @@ const VIDEO_EXTENSIONS = new Set([".mp4", ".mkv", ".webm", ".m4v"]);
 export const ANIME_QUALITIES = new Set(["best", "worst", "360", "480", "720", "1080"]);
 export const ANIME_QUALITY_PATTERN = /^(best|worst|360|480|720|1080)$/;
 export const MAX_ANIDL_EPISODES = 20;
-export const ANIDL_FORMAT_HINT = ".anidl <title> [-e <episode>] [-q <quality>] [--format-list] [--search]  # q=best|worst|360|480|720|1080, also accepts --360";
+export const ANIME_FORMAT_HINT = ".anime <title> [-e <episode>] [-q <quality>] [--info|-i] [--search] [--format-list]  # q=best|worst|360|480|720|1080, also accepts --360";
 
-const ANIDL_DIR = path.join(PATHS.downloads, "anidl");
+const ANIME_DIR = path.join(PATHS.downloads, "anime");
 const ANI_CLI_BIN = process.env.ANI_CLI_BIN || "ani-cli";
 const ANI_CLI_MENU = process.env.ANI_CLI_MENU || "/usr/local/bin/ani-pick-first";
 const ANI_DL_TIMEOUT_MS = Number(process.env.ANI_DL_TIMEOUT_MS || 15 * 60 * 1000);
@@ -25,7 +25,7 @@ function animeEnv(overrides = {}) {
     ...process.env,
     ANI_CLI_PLAYER: "/bin/true",
     ANI_CLI_MENU,
-    ANI_CLI_DOWNLOAD_DIR: ANIDL_DIR,
+    ANI_CLI_DOWNLOAD_DIR: ANIME_DIR,
     TERM: "dumb",
     ...overrides,
   };
@@ -65,7 +65,7 @@ export class AnimeQualityUnavailableError extends Error {
     super(
       `✗ Quality ${requested} is not available for ${title} episode ${episode}.\n` +
       `Available qualities: ${formats}\n` +
-      `Try: .anidl ${formatAnimeTitle(title)} -e ${episode} -q ${available[0]}`,
+      `Try: .anime ${formatAnimeTitle(title)} -e ${episode} -q ${available[0]}`,
     );
     this.name = "AnimeQualityUnavailableError";
     this.title = title;
@@ -91,7 +91,7 @@ export async function probeAnimeQualities(
     ANI_CLI_BIN,
     ["-S", "1", "-e", String(episode), "-q", "best", title],
     {
-      env: animeEnv({ ANI_CLI_PLAYER: "debug", ANI_CLI_DOWNLOAD_DIR: options.downloadDir || ANIDL_DIR }),
+      env: animeEnv({ ANI_CLI_PLAYER: "debug", ANI_CLI_DOWNLOAD_DIR: options.downloadDir || ANIME_DIR }),
       timeout: ANI_PROBE_TIMEOUT_MS,
       maxBuffer: 8 * 1024 * 1024,
     },
@@ -121,7 +121,7 @@ export async function downloadAnimeEpisode(
     mkdir = (dir) => fs.mkdir(dir, { recursive: true }),
   } = options;
 
-  const downloadDir = options.downloadDir || path.join(ANIDL_DIR, `${now()}-${randomUUID()}`);
+  const downloadDir = options.downloadDir || path.join(ANIME_DIR, `${now()}-${randomUUID()}`);
 
   if (!title || !title.trim()) throw new Error("Anime title is required.");
   if (!Number.isInteger(episode) || episode < 1) throw new Error("Episode must be a positive integer.");
@@ -134,7 +134,7 @@ export async function downloadAnimeEpisode(
       try {
         available = await probeAnimeQualities(title, { episode }, { ...options, downloadDir });
       } catch (error) {
-        console.error("anidl quality probe:", error?.message || error);
+        console.error("anime quality probe:", error?.message || error);
         available = [];
       }
     }

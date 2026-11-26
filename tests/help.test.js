@@ -35,8 +35,8 @@ test(".help lists every command", async () => {
   assert.match(text, /\.menu · Show the command menu/);
   assert.match(text, /Type `\.help <command>` for more details\./);
   for (const command of [
-    ".menu", ".checkdrive", ".list", ".upload", ".yt", ".ytm", ".anidl",
-    ".getani", ".tiktok", ".tts", ".scan", ".hitung", ".shorturl",
+    ".menu", ".checkdrive", ".list", ".upload", ".yt", ".ytm", ".anime",
+    ".tiktok", ".tts", ".scan", ".hitung", ".shorturl",
     ".morse", ".encode64", ".biner", ".sticker",
   ]) {
     assert.ok(text.includes(command), `missing ${command}`);
@@ -72,9 +72,9 @@ test(".help deviceinfo no longer exposes removed command", async () => {
   assert.match(output.messages[0], /No help/);
 });
 
-test("help covers anidl --quality with the format-list behavior", async () => {
+test("help covers anime --quality with the format-list behavior", async () => {
   const output = capture();
-  await help.run({ text: ".help anidl", sendText: output.sendText });
+  await help.run({ text: ".help anime", sendText: output.sendText });
   const text = output.messages[0];
   assert.match(text, /--quality/);
   assert.match(text, /--format-list/);
@@ -88,13 +88,24 @@ test("help covers anidl --quality with the format-list behavior", async () => {
 
 test("<command> --help replies instead of running the command", async () => {
   assert.ok(help.match({ text: ".yt --help" }));
-  assert.ok(help.match({ text: ".anidl -h" }));
+  assert.ok(help.match({ text: ".anime -h" }));
   assert.ok(help.match({ text: ".help yt" }));
   assert.equal(help.match({ text: ".yt https://youtu.be/abc123" }), false);
 
   const output = capture();
   await help.run({ text: ".yt --help", sendText: output.sendText });
   assert.match(output.messages[0], /^\.yt <url> \[--<360\|480\|720\|1080\|best>\] · Download a YouTube video to Google Drive/);
+});
+
+test("help text uses no emoji", async () => {
+  const output = capture();
+  await help.run({ text: ".help", sendText: output.sendText });
+  const emoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
+  assert.doesNotMatch(output.messages[0], emoji);
+
+  const animeHelp = capture();
+  await help.run({ text: ".help anime", sendText: animeHelp.sendText });
+  assert.doesNotMatch(animeHelp.messages[0], emoji);
 });
 
 test("every HELP entry has format, description, and menu-style heading", () => {

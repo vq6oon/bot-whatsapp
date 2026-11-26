@@ -9,8 +9,7 @@ import * as tiktok from "../handler/tiktok.js";
 import * as yt from "../handler/yt.js";
 import * as ytm from "../handler/ytm.js";
 import * as hitung from "../handler/hitung.js";
-import * as getani from "../handler/getani.js";
-import * as anidl from "../handler/anidl.js";
+import * as anime from "../handler/anime.js";
 import * as shorturl from "../handler/shorturl.js";
 import * as morse from "../handler/morse.js";
 import * as encode from "../handler/encode.js";
@@ -32,8 +31,7 @@ const HANDLERS = [
   yt,
   ytm,
   hitung,
-  getani,
-  anidl,
+  anime,
   shorturl,
   morse,
   encode,

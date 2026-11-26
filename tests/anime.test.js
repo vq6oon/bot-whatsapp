@@ -4,8 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DRIVE } from "../src/config.js";
-import * as anidl from "../handler/anidl.js";
-import * as getani from "../handler/getani.js";
+import * as anime from "../handler/anime.js";
 import * as menu from "../handler/menu.js";
 import {
   AnimeQualityUnavailableError,
@@ -44,56 +43,56 @@ const episode = {
   fileName: "Naruto Episode 1.mp4",
   mimeType: "video/mp4",
   size: 152 * 1024 * 1024,
-  filePath: "/downloads/anidl/Naruto Episode 1.mp4",
+  filePath: "/downloads/anime/Naruto Episode 1.mp4",
 };
 
-test(".anidl defaults to episode 1 and best quality", () => {
-  assert.deepEqual(anidl.parseArguments(".anidl naruto"), {
+test(".anime defaults to episode 1 and best quality", () => {
+  assert.deepEqual(anime.parseArguments(".anime naruto"), {
     title: "naruto",
     episodes: [1],
     quality: "best",
   });
 });
 
-test(".anidl parses -e and -q flags plus long aliases", () => {
-  assert.deepEqual(anidl.parseArguments(".anidl one piece -e 3 -q 720"), {
+test(".anime parses -e and -q flags plus long aliases", () => {
+  assert.deepEqual(anime.parseArguments(".anime one piece -e 3 -q 720"), {
     title: "one piece",
     episodes: [3],
     quality: "720",
   });
-  assert.deepEqual(anidl.parseArguments(".anidl one piece --episode 5 --quality best"), {
+  assert.deepEqual(anime.parseArguments(".anime one piece --episode 5 --quality best"), {
     title: "one piece",
     episodes: [5],
     quality: "best",
   });
-  assert.deepEqual(anidl.parseArguments(".anidl one piece --ep 3 --720"), {
+  assert.deepEqual(anime.parseArguments(".anime one piece --ep 3 --720"), {
     title: "one piece",
     episodes: [3],
     quality: "720",
   });
 });
 
-test(".anidl parses quoted titles and episode ranges", () => {
-  assert.deepEqual(anidl.parseArguments('.anidl "yani neko" --ep 1-3 --quality 1080'), {
+test(".anime parses quoted titles and episode ranges", () => {
+  assert.deepEqual(anime.parseArguments('.anime "yani neko" --ep 1-3 --quality 1080'), {
     title: "yani neko",
     episodes: [1, 2, 3],
     quality: "1080",
   });
-  assert.deepEqual(anidl.parseArguments(".anidl 'yani neko' --ep 2-2"), {
+  assert.deepEqual(anime.parseArguments(".anime 'yani neko' --ep 2-2"), {
     title: "yani neko",
     episodes: [2],
     quality: "best",
   });
 });
 
-test(".anidl parses --format-list", () => {
-  assert.deepEqual(anidl.parseArguments(".anidl naruto --format-list"), {
+test(".anime parses --format-list", () => {
+  assert.deepEqual(anime.parseArguments(".anime naruto --format-list"), {
     title: "naruto",
     episodes: [1],
     quality: "best",
     formatList: true,
   });
-  assert.deepEqual(anidl.parseArguments('.anidl "yani neko" --ep 2 --format-list --quality 720'), {
+  assert.deepEqual(anime.parseArguments('.anime "yani neko" --ep 2 --format-list --quality 720'), {
     title: "yani neko",
     episodes: [2],
     quality: "720",
@@ -101,48 +100,48 @@ test(".anidl parses --format-list", () => {
   });
 });
 
-test(".anidl parses --search and lists matching titles", () => {
-  assert.deepEqual(anidl.parseArguments(".anidl --search dandadan"), {
+test(".anime parses --search and lists matching titles", () => {
+  assert.deepEqual(anime.parseArguments(".anime --search dandadan"), {
     title: "dandadan",
     episodes: [1],
     quality: "best",
     search: true,
   });
-  assert.deepEqual(anidl.parseArguments('.anidl --search "dandadan s2"'), {
+  assert.deepEqual(anime.parseArguments('.anime --search "dandadan s2"'), {
     title: "dandadan s2",
     episodes: [1],
     quality: "best",
     search: true,
   });
-  assert.ok(anidl.parseArguments(".anidl --search").error);
+  assert.ok(anime.parseArguments(".anime --search").error);
 });
 
-test(".anidl rejects malformed or oversized episode ranges", () => {
+test(".anime rejects malformed or oversized episode ranges", () => {
   for (const ep of ["0-2", "3-1", "1-21", "1-2-3", "abc"]) {
-    assert.ok(anidl.parseArguments(`.anidl naruto --ep ${ep}`).error, ep);
+    assert.ok(anime.parseArguments(`.anime naruto --ep ${ep}`).error, ep);
   }
 });
 
-test(".anidl requires a title", async () => {
-  assert.ok(anidl.parseArguments(".anidl").error);
-  assert.ok(anidl.parseArguments(".anidl --ep 2").error);
+test(".anime requires a title", async () => {
+  assert.ok(anime.parseArguments(".anime").error);
+  assert.ok(anime.parseArguments(".anime --ep 2").error);
 });
 
-test(".anidl rejects a bare quality and a missing episode value", () => {
-  assert.ok(anidl.parseArguments(".anidl naruto 720").error);
-  assert.ok(anidl.parseArguments(".anidl naruto --ep").error);
-  assert.ok(anidl.parseArguments(".anidl naruto --ep 0").error);
-  assert.ok(anidl.parseArguments(".anidl naruto --999").error);
+test(".anime rejects a bare quality and a missing episode value", () => {
+  assert.ok(anime.parseArguments(".anime naruto 720").error);
+  assert.ok(anime.parseArguments(".anime naruto --ep").error);
+  assert.ok(anime.parseArguments(".anime naruto --ep 0").error);
+  assert.ok(anime.parseArguments(".anime naruto --999").error);
 });
 
-test(".anidl uploads the episode to Drive and cleans up the temporary file", async () => {
+test(".anime uploads the episode to Drive and cleans up the temporary file", async () => {
   const output = capture();
   const { uploaded, drive } = driveStub();
   const calls = [];
   const removed = [];
 
-  await anidl.run(
-    { text: ".anidl naruto --ep 2 --480", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime naruto --ep 2 --480", sendText: output.sendText },
     async (...args) => { calls.push(args); return episode; },
     async (path) => { removed.push(path); },
     drive,
@@ -156,17 +155,17 @@ test(".anidl uploads the episode to Drive and cleans up the temporary file", asy
   assert.deepEqual(removed, [episode.filePath]);
 });
 
-test(".anidl avoids duplicating the episode number in the Drive status", async () => {
+test(".anime avoids duplicating the episode number in the Drive status", async () => {
   const output = capture();
   const { uploaded, drive } = driveStub();
 
-  await anidl.run(
-    { text: ".anidl dandadan --ep 1 --1080", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime dandadan --ep 1 --1080", sendText: output.sendText },
     async () => ({
       ...episode,
       title: "Dandadan Episode 1",
       fileName: "Dandadan Episode 1.mp4",
-      filePath: "/downloads/anidl/Dandadan Episode 1.mp4",
+      filePath: "/downloads/anime/Dandadan Episode 1.mp4",
     }),
     async () => {},
     drive,
@@ -177,12 +176,12 @@ test(".anidl avoids duplicating the episode number in the Drive status", async (
   assert.doesNotMatch(output.messages.at(-1).text, /\(ep 1, 1080p\)/);
 });
 
-test(".anidl includes the best quality in the uploaded file name by default", async () => {
+test(".anime includes the best quality in the uploaded file name by default", async () => {
   const output = capture();
   const { uploaded, drive } = driveStub();
 
-  await anidl.run(
-    { text: ".anidl naruto", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime naruto -e 1", sendText: output.sendText },
     async () => episode,
     async () => {},
     drive,
@@ -192,12 +191,12 @@ test(".anidl includes the best quality in the uploaded file name by default", as
   assert.match(output.messages.at(-1).text, /Naruto Episode 1 \(best\)/);
 });
 
-test(".anidl labels best downloads with the selected format", async () => {
+test(".anime labels best downloads with the selected format", async () => {
   const output = capture();
   const { uploaded, drive } = driveStub();
 
-  await anidl.run(
-    { text: ".anidl overflow", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime overflow -e 1", sendText: output.sendText },
     async () => ({ ...episode, title: "Overflow Episode 1", fileName: "Overflow Episode 1.mp4", quality: "720" }),
     async () => {},
     drive,
@@ -207,7 +206,7 @@ test(".anidl labels best downloads with the selected format", async () => {
   assert.match(output.messages.at(-1).text, /Overflow Episode 1 \(720p\) saved to Google Drive/);
 });
 
-test(".anidl links the existing file when Drive already has that name", async () => {
+test(".anime links the existing file when Drive already has that name", async () => {
   const output = capture();
   const drive = {
     authorize: async () => "auth",
@@ -219,8 +218,8 @@ test(".anidl links the existing file when Drive already has that name", async ()
     }),
   };
 
-  await anidl.run(
-    { text: ".anidl naruto", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime naruto -e 1", sendText: output.sendText },
     async () => episode,
     async () => {},
     drive,
@@ -230,14 +229,14 @@ test(".anidl links the existing file when Drive already has that name", async ()
   assert.match(output.messages.at(-1).text, /old-anime-id/);
 });
 
-test(".anidl downloads and uploads every episode in a range", async () => {
+test(".anime downloads and uploads every episode in a range", async () => {
   const output = capture();
   const { uploaded, drive } = driveStub();
   const calls = [];
   const removed = [];
 
-  await anidl.run(
-    { text: '.anidl "yani neko" --ep 1-3 --quality 1080', sendText: output.sendText },
+  await anime.run(
+    { text: '.anime "yani neko" --ep 1-3 --quality 1080', sendText: output.sendText },
     async (title, options) => {
       calls.push([title, options]);
       const name = `Yani Neko Episode ${options.episode}.mp4`;
@@ -245,7 +244,7 @@ test(".anidl downloads and uploads every episode in a range", async () => {
         ...episode,
         title: `Yani Neko Episode ${options.episode}`,
         fileName: name,
-        filePath: `/downloads/anidl/${name}`,
+        filePath: `/downloads/anime/${name}`,
       };
     },
     async (filePath) => { removed.push(filePath); },
@@ -267,14 +266,14 @@ test(".anidl downloads and uploads every episode in a range", async () => {
   assert.equal(removed.length, 3);
 });
 
-test(".anidl --format-list lists qualities without downloading", async () => {
+test(".anime --format-list lists qualities without downloading", async () => {
   const output = capture();
   const { uploaded, drive } = driveStub();
   const probed = [];
   let downloads = 0;
 
-  await anidl.run(
-    { text: ".anidl yani neko --ep 2 --format-list", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime yani neko --ep 2 --format-list", sendText: output.sendText },
     async () => { downloads += 1; return episode; },
     async () => {},
     drive,
@@ -291,16 +290,16 @@ test(".anidl --format-list lists qualities without downloading", async () => {
   assert.match(output.messages[1].text, /Available formats for yani neko episode 2/);
   assert.match(output.messages[1].text, /· 1080p/);
   assert.match(output.messages[1].text, /· 720p/);
-  assert.match(output.messages[1].text, /\.anidl "yani neko" -e 2 -q 1080/);
+  assert.match(output.messages[1].text, /\.anime "yani neko" -e 2 -q 1080/);
 });
 
-test(".anidl --search lists anime titles without downloading", async () => {
+test(".anime --search lists anime titles without downloading", async () => {
   const output = capture();
   const searched = [];
   const downloaded = [];
 
-  await anidl.run(
-    { text: ".anidl --search dandadan s2", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime --search dandadan s2", sendText: output.sendText },
     async (...args) => { downloaded.push(args); return episode; },
     async () => {},
     undefined,
@@ -320,11 +319,11 @@ test(".anidl --search lists anime titles without downloading", async () => {
   assert.match(output.messages[1].text, /Pick one and run/);
 });
 
-test(".anidl --search reports when no anime titles are found", async () => {
+test(".anime --search reports when no anime titles are found", async () => {
   const output = capture();
 
-  await anidl.run(
-    { text: ".anidl --search unknown anime", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime --search unknown anime", sendText: output.sendText },
     async () => {},
     async () => {},
     undefined,
@@ -336,10 +335,10 @@ test(".anidl --search reports when no anime titles are found", async () => {
   assert.match(output.messages[1].text, /No anime titles found for unknown anime/);
 });
 
-test(".anidl --format-list handles empty and failed probes", async () => {
+test(".anime --format-list handles empty and failed probes", async () => {
   const empty = capture();
-  await anidl.run(
-    { text: ".anidl naruto --format-list", sendText: empty.sendText },
+  await anime.run(
+    { text: ".anime naruto --format-list", sendText: empty.sendText },
     async () => episode,
     async () => {},
     undefined,
@@ -348,8 +347,8 @@ test(".anidl --format-list handles empty and failed probes", async () => {
   assert.match(empty.messages.at(-1).text, /No formats found for naruto episode 1/);
 
   const failed = capture();
-  await anidl.run(
-    { text: ".anidl naruto --format-list", sendText: failed.sendText },
+  await anime.run(
+    { text: ".anime naruto --format-list", sendText: failed.sendText },
     async () => episode,
     async () => {},
     undefined,
@@ -358,14 +357,14 @@ test(".anidl --format-list handles empty and failed probes", async () => {
   assert.match(failed.messages.at(-1).text, /Could not read available formats/);
 });
 
-test(".anidl sends a download status before the Drive link", async () => {
+test(".anime sends a download status before the Drive link", async () => {
   const output = capture();
   const { drive } = driveStub();
   const events = [];
 
-  await anidl.run(
+  await anime.run(
     {
-      text: ".anidl naruto --ep 2 --480",
+      text: ".anime naruto --ep 2 --480",
       sendText: async (text) => { events.push(`text:${text}`); output.messages.push({ text }); },
     },
     async () => { events.push("download"); return episode; },
@@ -378,12 +377,12 @@ test(".anidl sends a download status before the Drive link", async () => {
   assert.match(output.messages.at(-1).text, /saved to Google Drive/);
 });
 
-test(".anidl reports a missing ani-cli install without calling Drive", async () => {
+test(".anime reports a missing ani-cli install without calling Drive", async () => {
   const output = capture();
   const { uploaded, drive } = driveStub();
 
-  await anidl.run(
-    { text: ".anidl naruto", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime naruto -e 1", sendText: output.sendText },
     async () => { const error = new Error("spawn ani-cli ENOENT"); error.code = "ENOENT"; throw error; },
     async () => {},
     drive,
@@ -393,14 +392,14 @@ test(".anidl reports a missing ani-cli install without calling Drive", async () 
   assert.match(output.messages.at(-1).text, /ani-cli is not installed/);
 });
 
-test(".anidl refuses to download when no Drive folder is configured", async () => {
+test(".anime refuses to download when no Drive folder is configured", async () => {
   const originalFolderId = DRIVE.folderId;
   DRIVE.folderId = "";
   const output = capture();
   let downloads = 0;
   try {
-    await anidl.run(
-      { text: ".anidl naruto", sendText: output.sendText },
+    await anime.run(
+      { text: ".anime naruto -e 1", sendText: output.sendText },
       async () => { downloads += 1; return episode; },
     );
   } finally {
@@ -411,7 +410,7 @@ test(".anidl refuses to download when no Drive folder is configured", async () =
   assert.match(output.messages[0].text, /not configured/);
 });
 
-test(".anidl reports Drive upload failures", async () => {
+test(".anime reports Drive upload failures", async () => {
   const output = capture();
   const removed = [];
   const drive = {
@@ -419,8 +418,8 @@ test(".anidl reports Drive upload failures", async () => {
     uploadToDrive: async () => { throw new Error("quota exceeded"); },
   };
 
-  await anidl.run(
-    { text: ".anidl naruto", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime naruto -e 1", sendText: output.sendText },
     async () => episode,
     async (path) => { removed.push(path); },
     drive,
@@ -439,7 +438,7 @@ test("downloadAnimeEpisode passes non-interactive flags and picks the newest fre
       run: async (...args) => { calls.push(args); return { stdout: "", stderr: "" }; },
       probeQualities: false,
       now: () => 10_000,
-      downloadDir: "/tmp/anidl-test",
+      downloadDir: "/tmp/anime-test",
       listFiles: async () => [
         { name: "Naruto Episode 4.mp4", mtimeMs: 9_500, isFile: () => true },
         { name: "Naruto Episode 3.mp4", mtimeMs: 5_000, isFile: () => true },
@@ -451,7 +450,7 @@ test("downloadAnimeEpisode passes non-interactive flags and picks the newest fre
 
   assert.equal(calls[0][0], "ani-cli");
   assert.deepEqual(calls[0][1], ["-d", "-S", "1", "-e", "4", "-q", "720", "naruto"]);
-  assert.equal(calls[0][2].env.ANI_CLI_DOWNLOAD_DIR, "/tmp/anidl-test");
+  assert.equal(calls[0][2].env.ANI_CLI_DOWNLOAD_DIR, "/tmp/anime-test");
   assert.equal(calls[0][2].env.ANI_CLI_MENU, "/usr/local/bin/ani-pick-first");
   assert.deepEqual(
     [media.title, media.fileName, media.mimeType, media.size, media.quality],
@@ -465,7 +464,7 @@ test("downloadAnimeEpisode fails when ani-cli produces no fresh video", async ()
       run: async () => ({}),
       probeQualities: false,
       now: () => 10_000,
-      downloadDir: "/tmp/anidl-test",
+      downloadDir: "/tmp/anime-test",
       listFiles: async () => [{ name: "old.mp4", mtimeMs: 1_000, isFile: () => true }],
     }),
     /produced no video/,
@@ -489,41 +488,115 @@ test("searchAnimeTitles queries the anime API with a limit and returns titles", 
   assert.deepEqual(results, [{ title: "Dandadan" }]);
 });
 
-test(".getani replaces .anime and both new commands are advertised in the menu", async () => {
-  assert.equal(getani.name, "getani");
-  assert.ok(getani.match({ text: ".getani Naruto" }));
-  assert.equal(getani.match({ text: ".anime Naruto" }), false);
-  assert.ok(anidl.match({ text: ".anidl naruto" }));
-  assert.equal(anidl.match({ text: ".anidll naruto" }), false);
+test(".anime replaces .anidl and .getani and is advertised in the menu", async () => {
+  assert.equal(anime.name, "anime");
+  assert.ok(anime.match({ text: ".anime naruto" }));
+  assert.equal(anime.match({ text: ".anidl naruto" }), false);
+  assert.equal(anime.match({ text: ".getani Naruto" }), false);
+  assert.equal(anime.match({ text: ".animel naruto" }), false);
 
   let sent = null;
   await menu.run({
     sock: { sendMessage: async (_to, message) => { sent = message; } },
     from: "chat@s.whatsapp.net",
   });
-  assert.match(sent.caption, /\.getani <title>/);
-  assert.match(sent.caption, /\.anidl <title>/);
+  assert.match(sent.caption, /\.anime <title>/);
+  assert.match(sent.caption, /\.anime <title> --info/);
+  assert.match(sent.caption, /\.help anime/);
   assert.match(sent.caption, /\.help \[command\]/);
-  assert.doesNotMatch(sent.caption, /\.anime/);
+  assert.doesNotMatch(sent.caption, /\.anidl/);
+  assert.doesNotMatch(sent.caption, /\.getani/);
 });
 
-test(".anidl accepts the --quality <q> spelling", () => {
-  assert.deepEqual(anidl.parseArguments(".anidl one piece --quality 720"), {
+test(".anime without any flag replies with the usage hint and does not download", async () => {
+  const output = capture();
+  let downloads = 0;
+
+  await anime.run(
+    { text: '.anime "one piece"', sendText: output.sendText },
+    async () => { downloads += 1; return episode; },
+  );
+
+  assert.equal(downloads, 0);
+  assert.equal(output.messages.length, 1);
+  assert.match(output.messages[0].text, /^Format: \.anime <title>/);
+  assert.match(output.messages[0].text, /Details: \.help anime/);
+});
+
+test(".anime --info sends the cover and synopsis without downloading", async () => {
+  const output = capture();
+  const sent = [];
+  const sock = { sendMessage: async (_to, message) => { sent.push(message); } };
+  let downloads = 0;
+
+  await anime.run(
+    { text: '.anime "naruto" --info', sock, from: "chat@s.whatsapp.net", sendText: output.sendText },
+    async () => { downloads += 1; return episode; },
+    async () => {},
+    undefined,
+    async () => { throw new Error("probe should not run"); },
+    async () => { throw new Error("search should not run"); },
+    async () => ({
+      title: "Naruto",
+      episodes: 220,
+      score: 8.02,
+      aired: { string: "Oct 3, 2002 to Feb 8, 2007" },
+      synopsis: "Naruto fights for his village.",
+      url: "https://myanimelist.net/anime/20",
+      images: { jpg: { image_url: "https://cdn.example/naruto.jpg" } },
+    }),
+  );
+
+  assert.equal(downloads, 0);
+  assert.match(output.messages[0].text, /Looking up naruto/);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].image.url, "https://cdn.example/naruto.jpg");
+  assert.match(sent[0].caption, /Naruto/);
+  assert.match(sent[0].caption, /Episodes: 220/);
+  assert.match(sent[0].caption, /Synopsis: Naruto fights/);
+  assert.deepEqual(anime.parseArguments('.anime "naruto" -i'), {
+    title: "naruto",
+    episodes: [1],
+    quality: "best",
+    info: true,
+  });
+});
+
+test(".anime --info reports a title with no match", async () => {
+  const output = capture();
+  const sock = { sendMessage: async () => { throw new Error("nothing to send"); } };
+
+  await anime.run(
+    { text: ".anime dandadan --info", sock, from: "chat@s.whatsapp.net", sendText: output.sendText },
+    async () => episode,
+    async () => {},
+    undefined,
+    async () => [],
+    async () => [],
+    async () => null,
+  );
+
+  assert.match(output.messages.at(-1).text, /No anime found for dandadan/);
+  assert.match(output.messages.at(-1).text, /\.anime "dandadan" --search/);
+});
+
+test(".anime accepts the --quality <q> spelling", () => {
+  assert.deepEqual(anime.parseArguments(".anime one piece --quality 720"), {
     title: "one piece",
     episodes: [1],
     quality: "720",
   });
-  assert.deepEqual(anidl.parseArguments(".anidl one piece --ep 5 --quality best"), {
+  assert.deepEqual(anime.parseArguments(".anime one piece --ep 5 --quality best"), {
     title: "one piece",
     episodes: [5],
     quality: "best",
   });
 });
 
-test(".anidl rejects quality values outside the known set", () => {
-  assert.ok(anidl.parseArguments(".anidl naruto --999").error);
-  assert.ok(anidl.parseArguments(".anidl naruto --quality 1080p").error);
-  assert.ok(anidl.parseArguments(".anidl naruto --quality").error);
+test(".anime rejects quality values outside the known set", () => {
+  assert.ok(anime.parseArguments(".anime naruto --999").error);
+  assert.ok(anime.parseArguments(".anime naruto --quality 1080p").error);
+  assert.ok(anime.parseArguments(".anime naruto --quality").error);
 });
 
 test("parseAnimeQualities extracts the offered streams from the debug output", () => {
@@ -563,7 +636,7 @@ test("downloadAnimeEpisode fails with the quality list when the requested format
       assert.ok(error instanceof AnimeQualityUnavailableError);
       assert.match(error.message, /720 is not available/);
       assert.match(error.message, /Available qualities: 1080p/);
-      assert.match(error.message, /Try: \.anidl "one piece" -e 1 -q 1080/);
+      assert.match(error.message, /Try: \.anime "one piece" -e 1 -q 1080/);
       return true;
     },
   );
@@ -583,7 +656,7 @@ test("downloadAnimeEpisode treats best and worst as valid against a numeric form
           return {};
         },
         now: () => 10_000,
-        downloadDir: "/tmp/anidl-test",
+        downloadDir: "/tmp/anime-test",
         listFiles: async () => [{ name: "Dandadan Episode 1.mp4", mtimeMs: 9_500, isFile: () => true }],
         stat: async () => ({ size: 2048 }),
       },
@@ -600,7 +673,7 @@ test("downloadAnimeEpisode resolves best to highest available quality", async ()
     probeQualities: false,
     run: async (_command, commandArgs) => { args = commandArgs; return {}; },
     now: () => 10_000,
-    downloadDir: "/tmp/anidl-test",
+    downloadDir: "/tmp/anime-test",
     listFiles: async () => [{ name: "Overflow Episode 1.mp4", mtimeMs: 9_500, isFile: () => true }],
     stat: async () => ({ size: 2048 }),
   });
@@ -609,11 +682,11 @@ test("downloadAnimeEpisode resolves best to highest available quality", async ()
   assert.equal(media.quality, "720");
 });
 
-test("anidl.run surfaces the format list without downloading", async () => {
+test("anime.run surfaces the format list without downloading", async () => {
   const output = capture();
   const drive = driveStub().drive;
-  await anidl.run(
-    { text: ".anidl one piece --quality 720", sendText: output.sendText },
+  await anime.run(
+    { text: ".anime one piece --quality 720", sendText: output.sendText },
     async () => {
       throw new AnimeQualityUnavailableError("one piece", 1, "720", ["1080"]);
     },
@@ -621,7 +694,7 @@ test("anidl.run surfaces the format list without downloading", async () => {
     drive,
   );
   assert.match(output.messages[1].text, /Available qualities: 1080p/);
-  assert.match(output.messages[1].text, /Try: \.anidl "one piece" -e 1 -q 1080/);
+  assert.match(output.messages[1].text, /Try: \.anime "one piece" -e 1 -q 1080/);
 });
 
 test("animeDownloadError unwraps the quality-unavailable message", () => {
@@ -643,13 +716,13 @@ test("downloadAnimeEpisode isolates each invocation in a fresh directory", async
   });
 
   assert.equal(madeDirs.length, 1);
-  assert.equal(path.dirname(madeDirs[0]), path.join("data", "downloads", "anidl"));
-  assert.notEqual(madeDirs[0], path.join("data", "downloads", "anidl"));
+  assert.equal(path.dirname(madeDirs[0]), path.join("data", "downloads", "anime"));
+  assert.notEqual(madeDirs[0], path.join("data", "downloads", "anime"));
   assert.equal(calls[0][2].env.ANI_CLI_DOWNLOAD_DIR, madeDirs[0]);
 });
 
 test("downloadAnimeEpisode accepts a real video listed from the filesystem", async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "anidl-real-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "anime-real-"));
   const filePath = path.join(dir, "Dandadan Episode 1.mp4");
   await fs.writeFile(filePath, "video");
   try {
@@ -666,7 +739,7 @@ test("downloadAnimeEpisode accepts a real video listed from the filesystem", asy
 });
 
 test("removeAnimeDownload removes the per-invocation directory", async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "anidl-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "anime-"));
   const filePath = path.join(dir, "Dandadan Episode 1.mp4");
   await fs.writeFile(filePath, "video");
   await fs.writeFile(path.join(dir, "Dandadan Episode 1.vtt"), "subtitle");

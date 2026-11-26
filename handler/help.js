@@ -21,15 +21,10 @@ export const HELP = {
     about: "Download YouTube audio as MP3 and send it to chat",
     detail: "Sends a playable MP3 audio message to chat. Google Drive is not required.",
   },
-  anidl: {
-    format: ".anidl <title> [-e <episode>] [-q <quality>] [--format-list] [--search]",
-    about: "Download anime episodes to Google Drive or search anime titles",
-    detail: "Quality: best | worst | 360 | 480 | 720 | 1080. Default: best. Short flags such as --720 also work.\nExample: .anidl \"one piece\" -e 3 -q 720\nList formats: .anidl --format-list\nSearch titles: .anidl --search \"dandadan\"\nAlways quote anime titles. -e|--episode selects episodes; -q|--quality selects quality. --format-list lists qualities for the first episode without downloading. --search lists anime titles without downloading. If a quality is unavailable, the bot shows available qualities.",
-  },
-  getani: {
-    format: ".getani <title>",
-    about: "Search anime and show its cover and synopsis",
-    detail: "Example: .getani Naruto",
+  anime: {
+    format: ".anime <title> [-e <episode>] [-q <quality>] [--info|-i] [--search] [--format-list]",
+    about: "Download anime to Drive or look up a title",
+    detail: "Look up a title: .anime \"naruto\" --info (or -i)\nDownload: .anime \"one piece\" -e 3 -q 720\nList formats: .anime \"one piece\" --format-list\nSearch titles: .anime \"dandadan\" --search\nQuality: best | worst | 360 | 480 | 720 | 1080. Default: best. Short flags such as --720 also work.\nWithout a flag the bot replies with the usage hint instead of downloading. Always quote anime titles. -e|--episode selects one episode or an inclusive range; -q|--quality selects quality. If a quality is unavailable, the bot shows available qualities.",
   },
   tiktok: {
     format: ".tiktok <url> [video|hd|audio|photo]",
@@ -50,8 +45,8 @@ export const HELP = {
 // Command prefixes that answer to the same help block (e.g. .encode64/.decode64).
 const OWNERS = {
   menu: "menu", info: "info", rules: "rules", checkdrive: "checkdrive",
-  list: "list", upload: "upload", yt: "yt", ytm: "ytm", anidl: "anidl",
-  getani: "getani", tiktok: "tiktok", tts: "tts", scan: "scan", hitung: "hitung",
+  list: "list", upload: "upload", yt: "yt", ytm: "ytm", anime: "anime",
+  tiktok: "tiktok", tts: "tts", scan: "scan", hitung: "hitung",
   shorturl: "shorturl",
   morse: "morse", textmorse: "morse",
   encode64: "encode64", decode64: "encode64",
@@ -68,7 +63,7 @@ export function match(ctx) {
 
 export function helpText(command) {
   const normalized = String(command || "").replace(/^[.-]+/, "").toLowerCase();
-  const owner = OWNERS[normalized] || ["yt", "ytm", "anidl", "tiktok", "getani", "list", "upload"].find(
+  const owner = OWNERS[normalized] || ["yt", "ytm", "anime", "tiktok", "list", "upload"].find(
     (k) => normalized.startsWith(k),
   );
   const entry = HELP[owner];
