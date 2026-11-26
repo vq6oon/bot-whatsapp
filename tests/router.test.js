@@ -13,7 +13,7 @@ test("unknown text points users to .menu", async () => {
   const result = await dispatch({ text: "hello bot", sendText: output.sendText });
 
   assert.equal(result, null);
-  assert.deepEqual(output.messages, ["Perintah tidak dikenal. Buka .menu untuk melihat menu."]);
+  assert.deepEqual(output.messages, ["Unknown command. Try .menu."]);
 });
 
 test("removed guessing command falls back to unknown-command reply", async () => {
@@ -22,7 +22,7 @@ test("removed guessing command falls back to unknown-command reply", async () =>
   const result = await dispatch({ text: ".tebak cat", sendText: output.sendText });
 
   assert.equal(result, null);
-  assert.deepEqual(output.messages, ["Perintah tidak dikenal. Buka .menu untuk melihat menu."]);
+  assert.deepEqual(output.messages, ["Unknown command. Try .menu."]);
 });
 
 test("removed device info command falls back to unknown-command reply", async () => {
@@ -31,7 +31,7 @@ test("removed device info command falls back to unknown-command reply", async ()
   const result = await dispatch({ text: ".deviceinfo", sendText: output.sendText });
 
   assert.equal(result, null);
-  assert.deepEqual(output.messages, ["Perintah tidak dikenal. Buka .menu untuk melihat menu."]);
+  assert.deepEqual(output.messages, ["Unknown command. Try .menu."]);
 });
 
 test("empty messages do not trigger the unknown-command reply", async () => {

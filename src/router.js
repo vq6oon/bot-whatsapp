@@ -52,7 +52,7 @@ export async function dispatch(ctx) {
   }
 
   if (typeof ctx.text === "string" && ctx.text.trim()) {
-    await ctx.sendText("Perintah tidak dikenal. Buka .menu untuk melihat menu.");
+    await ctx.sendText("Unknown command. Try .menu.");
   }
 
   return null;
