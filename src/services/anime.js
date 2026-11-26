@@ -127,6 +127,7 @@ export async function downloadAnimeEpisode(
   if (!Number.isInteger(episode) || episode < 1) throw new Error("Episode must be a positive integer.");
   if (!ANIME_QUALITY_PATTERN.test(String(quality))) throw new Error(`Unsupported quality: ${quality}`);
 
+  let selectedQuality = String(quality);
   if (options.availableQualities || options.probeQualities !== false) {
     let available = options.availableQualities;
     if (!available) {
@@ -137,14 +138,22 @@ export async function downloadAnimeEpisode(
         available = [];
       }
     }
-    if (available.length && !["best", "worst"].includes(String(quality)) && !available.includes(String(quality))) {
-      throw new AnimeQualityUnavailableError(title, episode, String(quality), available);
+    if (available.length) {
+      const sortedQualities = [...available].sort((a, b) => Number(b) - Number(a));
+      if (selectedQuality === "best") selectedQuality = sortedQualities[0];
+      if (selectedQuality === "worst") selectedQuality = sortedQualities.at(-1);
+      if (!ANIME_QUALITY_PATTERN.test(selectedQuality)) {
+        throw new Error(`Unsupported quality: ${selectedQuality}`);
+      }
+      if (!sortedQualities.includes(selectedQuality)) {
+        throw new AnimeQualityUnavailableError(title, episode, selectedQuality, sortedQualities);
+      }
     }
   }
 
   await mkdir(downloadDir);
   const startedAt = now() - 2000;
-  const args = ["-d", "-S", "1", "-e", String(episode), "-q", String(quality), title.trim()];
+  const args = ["-d", "-S", "1", "-e", String(episode), "-q", selectedQuality, title.trim()];
 
   try {
     await run(ANI_CLI_BIN, args, {
@@ -168,6 +177,7 @@ export async function downloadAnimeEpisode(
     return {
       title: path.basename(newest.name, extension),
       fileName: newest.name,
+      quality: selectedQuality,
       mimeType: "video/mp4",
       filePath,
       size: (await stat(filePath)).size,

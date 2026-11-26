@@ -192,6 +192,21 @@ test(".anidl includes the best quality in the uploaded file name by default", as
   assert.match(output.messages.at(-1).text, /Naruto Episode 1 \(best\)/);
 });
 
+test(".anidl labels best downloads with the selected format", async () => {
+  const output = capture();
+  const { uploaded, drive } = driveStub();
+
+  await anidl.run(
+    { text: ".anidl overflow", sendText: output.sendText },
+    async () => ({ ...episode, title: "Overflow Episode 1", fileName: "Overflow Episode 1.mp4", quality: "720" }),
+    async () => {},
+    drive,
+  );
+
+  assert.equal(uploaded[0][2], "Overflow Episode 1 (720p).mp4");
+  assert.match(output.messages.at(-1).text, /Overflow Episode 1 \(720p\) saved to Google Drive/);
+});
+
 test(".anidl links the existing file when Drive already has that name", async () => {
   const output = capture();
   const drive = {
@@ -439,8 +454,8 @@ test("downloadAnimeEpisode passes non-interactive flags and picks the newest fre
   assert.equal(calls[0][2].env.ANI_CLI_DOWNLOAD_DIR, "/tmp/anidl-test");
   assert.equal(calls[0][2].env.ANI_CLI_MENU, "/usr/local/bin/ani-pick-first");
   assert.deepEqual(
-    [media.title, media.fileName, media.mimeType, media.size],
-    ["Naruto Episode 4", "Naruto Episode 4.mp4", "video/mp4", 1024],
+    [media.title, media.fileName, media.mimeType, media.size, media.quality],
+    ["Naruto Episode 4", "Naruto Episode 4.mp4", "video/mp4", 1024, "720"],
   );
 });
 
@@ -555,7 +570,7 @@ test("downloadAnimeEpisode fails with the quality list when the requested format
 });
 
 test("downloadAnimeEpisode treats best and worst as valid against a numeric format list", async () => {
-  for (const quality of ["best", "worst"]) {
+  for (const [quality, expectedQuality] of [["best", "1080"], ["worst", "360"]]) {
     const media = await downloadAnimeEpisode(
       "dandadan",
       { episode: 1, quality },
@@ -564,7 +579,7 @@ test("downloadAnimeEpisode treats best and worst as valid against a numeric form
         probeQualities: false,
         run: async (...args) => {
           assert.equal(args[1][args[1].length - 3], "-q");
-          assert.equal(args[1][args[1].length - 2], quality);
+          assert.equal(args[1][args[1].length - 2], expectedQuality);
           return {};
         },
         now: () => 10_000,
@@ -574,7 +589,24 @@ test("downloadAnimeEpisode treats best and worst as valid against a numeric form
       },
     );
     assert.equal(media.title, "Dandadan Episode 1");
+    assert.equal(media.quality, expectedQuality);
   }
+});
+
+test("downloadAnimeEpisode resolves best to highest available quality", async () => {
+  let args;
+  const media = await downloadAnimeEpisode("overflow", { episode: 1, quality: "best" }, {
+    availableQualities: ["720"],
+    probeQualities: false,
+    run: async (_command, commandArgs) => { args = commandArgs; return {}; },
+    now: () => 10_000,
+    downloadDir: "/tmp/anidl-test",
+    listFiles: async () => [{ name: "Overflow Episode 1.mp4", mtimeMs: 9_500, isFile: () => true }],
+    stat: async () => ({ size: 2048 }),
+  });
+
+  assert.equal(args[args.indexOf("-q") + 1], "720");
+  assert.equal(media.quality, "720");
 });
 
 test("anidl.run surfaces the format list without downloading", async () => {

@@ -189,7 +189,8 @@ export async function run(
       try {
         driveApi = driveApi || drive || (await import("../src/services/drive.js"));
         auth = auth || (await driveApi.authorize());
-        const quality = parsed.quality === "best" ? "best" : `${parsed.quality}p`;
+        const selectedQuality = media.quality || parsed.quality;
+        const quality = selectedQuality === "best" ? "best" : `${selectedQuality}p`;
         const uploadName = withQualitySuffix(media.fileName, quality);
         const uploaded = await driveApi.uploadToDrive(auth, media.filePath, uploadName, media.mimeType);
         const link = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
