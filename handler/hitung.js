@@ -9,7 +9,7 @@ export async function run({ text, sendText }) {
   try {
     // Allow only numbers and operators to prevent code injection.
     if (!/^[0-9+\-*/(). %]+$/.test(expression)) {
-      return sendText("✗ Invalid expression!");
+      return sendText("✗ Invalid expression. Use numbers and + - * / ( ).");
     }
 
     const result = Function(`"use strict"; return (${expression})`)();

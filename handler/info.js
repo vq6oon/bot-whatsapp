@@ -13,13 +13,13 @@ export async function run({ sock, from }) {
     caption: [
       "Bot information",
       "",
-      `Name      — ${BOT_NAME}`,
-      `Developer — ${DEVELOPER}`,
-      "Language  — JavaScript",
-      "Framework — Baileys v6",
-      "Platform  — WhatsApp",
-      `GitHub    — ${GITHUB}`,
-      `Version   — ${BOT_VERSION}`,
+      `Name      · ${BOT_NAME}`,
+      `Developer · ${DEVELOPER}`,
+      "Language  · JavaScript",
+      "Framework · Baileys v6",
+      "Platform  · WhatsApp",
+      `GitHub    · ${GITHUB}`,
+      `Version   · ${BOT_VERSION}`,
     ].join("\n"),
   });
 }

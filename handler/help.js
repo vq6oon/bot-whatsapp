@@ -6,8 +6,8 @@ export const name = "help";
 // Namespace styling: duplicate subcommands (encode64/biner) share owner.
 export const HELP = {
   menu: { format: ".menu", about: "Show the command menu" },
-  info: { format: ".info", about: "Show bot, developer, framework, and version information" },
-  rules: { format: ".rules", about: "Show bot usage rules" },
+  info: { format: ".info", about: "Show bot name, developer, framework, and version" },
+  rules: { format: ".rules", about: "Show usage rules" },
   checkdrive: { format: ".checkdrive", about: "Show Drive folder name, file count, and folder link" },
   list: { format: ".list [audio|video|document|photo]", about: "List Drive files with an optional type filter" },
   upload: { format: ".upload [name]", about: "Upload attached or quoted media to Drive" },

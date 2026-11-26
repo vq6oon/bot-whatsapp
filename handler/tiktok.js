@@ -12,7 +12,7 @@ export async function run({ text, sock, from, sendText }) {
   const mode = args[2] || "video";
 
   if (!url || !url.includes("tiktok.com")) {
-    return sendText("Example: .tiktok <url> [video|hd|audio|photo]");
+    return sendText("Format: .tiktok <url> [video|hd|audio|photo]");
   }
 
   await sendText("· Fetching TikTok media...");
@@ -24,7 +24,7 @@ export async function run({ text, sock, from, sendText }) {
     const json = await response.json();
 
     if (json.code !== 0 || !json.data) {
-      return sendText("Could not retrieve TikTok media.");
+      return sendText("✗ TikTok returned no media for this link.");
     }
 
     const data = json.data;
@@ -36,7 +36,7 @@ export async function run({ text, sock, from, sendText }) {
       const videoUrl = mode === "hd"
         ? data.hdplay || data.play
         : data.play || data.hdplay;
-      if (!videoUrl) return sendText("TikTok video is unavailable.");
+      if (!videoUrl) return sendText("✗ No video stream in this post. Try photo or audio mode.");
 
       const quality = mode === "hd" && data.hdplay ? "HD" : "standard";
       const fileId = String(data.id || "video").replace(/[^a-zA-Z0-9_-]/g, "");
@@ -58,10 +58,10 @@ export async function run({ text, sock, from, sendText }) {
       }
       await sendText(caption);
     } else {
-      return sendText("Unknown mode or unavailable content.");
+      return sendText("✗ Unknown mode. Use video, hd, audio, or photo.");
     }
   } catch (error) {
     console.error("tiktok:", error?.message || error);
-    return sendText("TikTok download failed.");
+    return sendText("✗ TikTok download failed. Try the link again later.");
   }
 }

@@ -5,8 +5,8 @@ WhatsApp bot built on Baileys v6 and Node.js. It downloads media (YouTube, TikTo
 ## Requirements
 
 - Node.js 20 or newer (`engines.node` is `>=20`; the test runner needs `node --test`)
-- `ffmpeg` on `PATH` — yt-dlp uses it to extract MP3 and mux MP4
-- `python3.11` on `PATH` — `youtube-dl-exec` is invoked as `python3.11 <youtube-dl-binary>`; override with `YOUTUBE_DL_PYTHON`
+- `ffmpeg` on `PATH`; yt-dlp uses it to extract MP3 and mux MP4
+- `python3.11` on `PATH`; `youtube-dl-exec` runs as `python3.11 <youtube-dl-binary>`, override with `YOUTUBE_DL_PYTHON`
 - Google OAuth client and token for the Drive commands (see Drive setup)
 - `ani-cli` on `PATH` for `.anidl`, plus a `yt-dlp` executable on `PATH` that runs under Python 3.11 (ani-cli prefers it over the system `ffmpeg`)
 - `tools/ani-pick-first` installed as `/usr/local/bin/ani-pick-first` so ani-cli can pick the first result without an interactive menu
@@ -20,7 +20,7 @@ npm ci
 npm start
 ```
 
-`npm start` runs `node bot.js`, which loads `.env` through `dotenv/config` and calls `startBot()` in `src/bot.js`. On first start a QR code is printed; scan it from WhatsApp → Linked Devices. The session is stored in `data/auth_info/` (`useMultiFileAuthState`), so later starts do not need another scan. Set `WA_PAIR_NUMBER` in `.env` to log in with a pairing code instead — the code is requested three seconds after socket creation and printed as `Pairing code: XXXXXXXX`.
+`npm start` runs `node bot.js`, which loads `.env` through `dotenv/config` and calls `startBot()` in `src/bot.js`. On first start a QR code is printed; scan it from WhatsApp → Linked Devices. The session is stored in `data/auth_info/` (`useMultiFileAuthState`), so later starts do not need another scan. Set `WA_PAIR_NUMBER` in `.env` to log in with a pairing code instead. The code is requested three seconds after socket creation and printed as `Pairing code: XXXXXXXX`.
 
 Runtime files, all under `data/` and ignored by Git: `data/auth_info/` (session), `data/downloads/`, `data/logs/`.
 
@@ -103,7 +103,7 @@ A handler module exports `name`, `match(ctx)`, and `run(ctx, ...injectableDeps)`
 
 ## YouTube commands
 
-`.yt` is video only. The quality flag is a `--` argument, not a bare number: `.yt <url> --720`. Accepted values are `--360`, `--480`, `--720`, `--1080`, and `--best`; omitting the flag means `best`. Anything else — a bare `720`, `--999`, a second argument — is rejected with the format hint before any download starts. `youtube.com`, any `*.youtube.com` host, and `youtu.be` pass; lookalike domains such as `youtube.com.evil.example` do not. The MP4 is uploaded to Drive and the reply carries the link, so `DRIVE_FOLDER_ID` must be set.
+`.yt` is video only. The quality flag is a `--` argument, not a bare number: `.yt <url> --720`. Accepted values are `--360`, `--480`, `--720`, `--1080`, and `--best`; omitting the flag means `best`. Anything else, such as a bare `720`, `--999`, or a second argument, is rejected with the format hint before any download starts. `youtube.com`, any `*.youtube.com` host, and `youtu.be` pass; lookalike domains such as `youtube.com.evil.example` do not. The MP4 is uploaded to Drive and the reply carries the link, so `DRIVE_FOLDER_ID` must be set.
 
 `.ytm` takes only a URL and always produces an MP3: `downloadYoutube(url, "mp3", "best")`, then `sock.sendMessage` with `audio`, `mimetype: audio/mpeg`, `fileName`, and `ptt: false`. The audio message comes back to the chat, not Drive, so no folder is needed.
 
@@ -151,7 +151,7 @@ npm test
 # same as: node --test tests/drive.test.js tests/yt.test.js tests/anidl.test.js tests/help.test.js tests/router.test.js
 ```
 
-83 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anidl.test.js` covers argument parsing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, the anime title search with its available-titles response, and the `.anime` → `.getani` rename. `tests/help.test.js` covers the `.help` listing, menu-style help format, aliases, `<command> --help`, and the anidl help entry. `tests/router.test.js` covers the unknown-message reply and removed-command fallbacks. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer — Node 12 rejects `--test`.
+83 tests. `tests/drive.test.js` covers `.checkdrive`, `.list`, `.upload`, their progress lines, file filtering, exact-name reuse, filename helpers, and the menu caption. `tests/yt.test.js` covers the `.yt`/`.ytm` split: progress lines, resolution probing and fallback labels, default and `--` quality flags, rejection of bare qualities and lookalike hosts, the missing-folder guard, Drive upload failure, extractor exit code 1, temporary file cleanup, the audio payload `.ytm` sends, and command-prefix matching. `tests/anidl.test.js` covers argument parsing, the Drive upload and caption, cleanup, failure messages, the missing-folder guard, ani-cli's non-interactive flags and fresh-file selection, the quality probe with its format-list error, the anime title search with its available-titles response, and the `.anime` → `.getani` rename. `tests/help.test.js` covers the `.help` listing, menu-style help format, aliases, `<command> --help`, and the anidl help entry. `tests/router.test.js` covers the unknown-message reply and removed-command fallbacks. No network, no WhatsApp session, and no real Drive call: the Drive client and downloader are injected. Use Node 20 or newer; Node 12 rejects `--test`.
 
 ## Notes
 

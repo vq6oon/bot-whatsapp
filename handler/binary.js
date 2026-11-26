@@ -16,7 +16,7 @@ const toBinary = (text) =>
 export async function run({ text, sendText }) {
   if (text.startsWith(".biner ")) {
     const input = text.slice(7).trim();
-    if (!input) return sendText("· Enter text after .biner");
+    if (!input) return sendText("Format: .biner <text>");
 
     const perCharacter = [...input].map(
       (character) => `${character} → ${character.charCodeAt(0).toString(2).padStart(8, "0")}`,

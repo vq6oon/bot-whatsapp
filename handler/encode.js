@@ -7,7 +7,7 @@ export function match(ctx) {
 export async function run({ text, sendText }) {
   if (text.startsWith(".encode64 ")) {
     const input = text.slice(10).trim();
-    if (!input) return sendText("· Example: .encode64 hello world");
+    if (!input) return sendText("Example: .encode64 hello world");
     const base64 = Buffer.from(input).toString("base64");
     return sendText(`┌─ text    : ${input}\n└─ base64  : ${base64}`);
   }

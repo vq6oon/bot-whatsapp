@@ -8,15 +8,15 @@ export function match(ctx) {
 
 export async function run({ text, sock, from, sendText }) {
   const query = text.slice(8).trim();
-  if (!query) return sendText("· Example: .getani Naruto");
+  if (!query) return sendText("Format: .getani <title>");
 
   await sendText("· Searching anime...");
 
   try {
     const anime = await searchAnime(query);
-    if (!anime) return sendText("✗ Anime not found.");
+    if (!anime) return sendText("✗ Anime not found. Try .anidl --search <title> to check the exact name.");
 
-    const caption = `*${anime.title || anime.title_english || "Unknown title"}*\n\nEpisodes: ${anime.episodes || "?"}\nScore: ${anime.score || "?"}\nAired: ${anime.aired?.string || "?"}\n\nSynopsis: ${anime.synopsis || "No description available."}\n\n→ ${anime.url || `https://myanimelist.net/anime/${anime.mal_id}`}`;
+    const caption = `*${anime.title || anime.title_english || "Unknown title"}*\n\nEpisodes: ${anime.episodes || "?"}\nScore: ${anime.score || "?"}\nAired: ${anime.aired?.string || "?"}\n\nSynopsis: ${anime.synopsis || "No synopsis yet."}\n\n→ ${anime.url || `https://myanimelist.net/anime/${anime.mal_id}`}`;
     const imageUrl = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url;
 
     if (imageUrl) {
